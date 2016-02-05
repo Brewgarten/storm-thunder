@@ -1,0 +1,2 @@
+include versioneer.py
+include storm/thunder/_version.py
