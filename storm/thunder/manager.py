@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Deployment management functionality
+"""
 import argparse
 import logging
 import os

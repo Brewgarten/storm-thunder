@@ -1,3 +1,6 @@
+"""
+Software related deployments
+"""
 import logging
 import os
 import re
@@ -23,7 +26,10 @@ class DeployPythonPackages(Deployment):
     """
     def __init__(self, packages, pip="/usr/bin/pip"):
         super(DeployPythonPackages, self).__init__()
-        self.packages = map(lambda s: s.strip(), packages)
+        self.packages = [
+            packagePath.strip()
+            for packagePath in packages
+        ]
         self.pip = pip
 
     def run(self, node, client):
@@ -31,16 +37,18 @@ class DeployPythonPackages(Deployment):
         with RemoteTemporaryDirectory(client) as tmpDirectory:
 
             # upload packages
-            uploadedPackages = [ re.sub(r'-\d.*', r'', os.path.basename(packageName))
-                                for packageName in client.upload(self.packages, tmpDirectory) ]
+            uploadedPackages = [
+                re.sub(r"-\d.*", r"", os.path.basename(packageName))
+                for packageName in client.upload(self.packages, tmpDirectory)
+            ]
             if len(uploadedPackages) != len(self.packages):
                 raise DeploymentRunError(node, "Could not deploy Python packages")
 
             # install uploaded packages
             stdout, stderr, status = client.run("{pip} install --upgrade --force-reinstall --pre --no-index --find-links {tmpDirectory} {packages}".format(
-                                                    pip=self.pip,
-                                                    tmpDirectory=tmpDirectory,
-                                                    packages=' '.join(uploadedPackages)))
+                pip=self.pip,
+                tmpDirectory=tmpDirectory,
+                packages=" ".join(uploadedPackages)))
             if status != 0:
                 raise DeploymentRunError(node, "Could not deploy Python packages", status, stdout, stderr)
 
@@ -76,13 +84,13 @@ class DeployRPMs(Deployment):
             stdout, stderr, status = client.run("/usr/bin/yum clean all")
             if status != 0:
                 raise DeploymentRunError(
-                        node, "Could not clean yum metadata and caches", status, stdout, stderr)
+                    node, "Could not clean yum metadata and caches", status, stdout, stderr)
 
             # install uploaded rpms
             stdout, stderr, status = client.run("/usr/bin/yum localinstall --assumeyes {0}".format(" ".join(uploadedRPMFileNames)))
             if status != 0:
                 raise DeploymentRunError(
-                        node, "Could not deploy rpms", status, stdout, stderr)
+                    node, "Could not deploy rpms", status, stdout, stderr)
 
         return node
 
@@ -100,7 +108,7 @@ class UpdateKernel(Deployment):
         stdout, stderr, status = client.run("/usr/bin/yum update kernel --assumeyes")
         if status != 0:
             raise DeploymentRunError(
-                     node, "Could not update kernel", status, stdout, stderr)
+                node, "Could not update kernel", status, stdout, stderr)
 
         if "No Packages marked for Update" in stdout:
             return node
@@ -109,10 +117,10 @@ class UpdateKernel(Deployment):
         stdout, stderr, status = client.run("/sbin/reboot")
         if status != 0:
             raise DeploymentRunError(
-                     node, "Error while rebooting", status, stdout, stderr)
+                node, "Error while rebooting", status, stdout, stderr)
 
         if not client.waitForReady(initialWait=15, pollfrequency=5):
             raise DeploymentRunError(
-                     node, "Unable to reboot the system")
+                node, "Unable to reboot the system")
 
         return node

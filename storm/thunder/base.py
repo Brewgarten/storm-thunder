@@ -1,3 +1,6 @@
+"""
+Base components of deployments and deployment functionality
+"""
 from abc import ABCMeta, abstractmethod
 import collections
 import datetime
@@ -290,6 +293,9 @@ class NodesInfoMap(JSONSerializable):
         return len(self.nodes)
 
     def items(self):
+        """
+        Node items
+        """
         return self.nodes.items()
 
     def addNodes(self, nodes):
@@ -403,18 +409,18 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
                     log.info("Running '%s.%s' on '%s' took %s",
                              deployment.__class__.__module__, deployment.__class__.__name__, node.name, end-start)
 
-                except Exception as e:
+                except Exception as exception:
                     end = datetime.datetime.utcnow()
-                    result = DeploymentErrorResult(deployment, node, start, end, e)
+                    result = DeploymentErrorResult(deployment, node, start, end, exception)
                     log.error("Could not run '%s.%s' on '%s': %s",
-                              deployment.__class__.__module__, deployment.__class__.__name__, node.name, e)
-                    log.exception(e)
+                              deployment.__class__.__module__, deployment.__class__.__name__, node.name, exception)
+                    log.exception(exception)
 
             client.close()
             results.append(result)
-        except Exception as e:
+        except Exception as exception:
             # FIXME: add as deployment error to the results
-            log.error("Could not run '%s' on '%s': %s", ",".join(deploymentNames), node.name, e)
+            log.error("Could not run '%s' on '%s': %s", ",".join(deploymentNames), node.name, exception)
     totalEnd = datetime.datetime.utcnow()
     log.info("Running '%s' on %d nodes took %s", ",".join(deploymentNames), len(nodes), totalEnd-totalStart)
     return DeploymentResults(results, totalStart, totalEnd)

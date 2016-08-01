@@ -1,3 +1,6 @@
+"""
+Cluster deployments
+"""
 import datetime
 import logging
 
@@ -81,9 +84,9 @@ class SetupPasswordlessSSH(ClusterDeployment):
                 hostKeys[node.name] = client.read("/etc/ssh/ssh_host_rsa_key.pub")
                 sshKeys.append(client.read('/root/.ssh/id_rsa.pub'))
                 client.close()
-            except Exception as e:
+            except Exception as exception:
                 errorNodes.append(node)
-                log.error("Could not get ssh keys from '%s': %s", node.name, e)
+                log.error("Could not get ssh keys from '%s': %s", node.name, exception)
 
         log.debug("Deploying passwordless SSH")
         for node in nodes:
@@ -99,9 +102,9 @@ class SetupPasswordlessSSH(ClusterDeployment):
                 successNodes.append(node)
                 end = datetime.datetime.utcnow()
                 log.info("Running 'passwordless SSH deployment' on '%s' nodes took %s", node.name, end-start)
-            except Exception as e:
+            except Exception as exception:
                 errorNodes.append(node)
-                log.error("Could not run 'passwordless SSH deployment' on '%s': %s", node.name, e)
+                log.error("Could not run 'passwordless SSH deployment' on '%s': %s", node.name, exception)
         totalEnd = datetime.datetime.utcnow()
         log.info("Running 'passwordless SSH deployment' on %d nodes took %s", len(nodes), totalEnd-totalStart)
         return successNodes, errorNodes

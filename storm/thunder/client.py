@@ -1,3 +1,6 @@
+"""
+Functionality to connect to and manage remote nodes
+"""
 import inspect
 import logging
 import os
@@ -63,8 +66,14 @@ def MethodExcecutionLogger(cls):
     cls.log = logging.getLogger("{0}.{1}".format(cls.__module__, cls.__name__))
 
     def methodLogger(cls, method):
+        """
+        Decorator that logs hostname and action
+        """
         @wraps(method)
         def wrapper(*args, **kwargs):
+            """
+            Actual logging decorator
+            """
             if cls.log.isEnabledFor(logging.DEBUG):
                 instance = args[0]
                 cls.log.debug("%s: %s%s", instance.hostname, method.func_name, getFormattedArgumentString(args[1:], kwargs))
@@ -73,8 +82,14 @@ def MethodExcecutionLogger(cls):
         return wrapper
 
     def runMethodLogger(cls, method):
+        """
+        Decorator that logs hostname and remote execution information
+        """
         @wraps(method)
         def wrapper(*args, **kwargs):
+            """
+            Actual logging decorator
+            """
             if cls.log.isEnabledFor(logging.DEBUG):
                 instance = args[0]
                 cls.log.debug("%s: %s%s", instance.hostname, method.func_name, getFormattedArgumentString(args[1:], kwargs))

@@ -15,13 +15,13 @@ setup(
     description = "Framework to perform deployments onto cloud virtual machines",
     entry_points = {
         "console_scripts" : [
-            "storm-thunder-deploy = storm.thunder.manager:main"
+            "storm-thunder = storm.thunder.manager:main"
         ]
     },
     install_requires = [
-        "apache-libcloud",
+        "apache-libcloud==1.1",
         "c4-utils",
-        "paramiko"
+        "paramiko==2.0"
     ],
     keywords = "python storm cloud deployment",
     license = "IBM",

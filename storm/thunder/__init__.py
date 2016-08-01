@@ -1,3 +1,6 @@
+"""
+Cloud deployment tooling
+"""
 from pkgutil import extend_path
 
 from ._version import get_versions
