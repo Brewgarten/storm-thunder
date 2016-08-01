@@ -1,3 +1,6 @@
+"""
+SSH related deployments
+"""
 import logging
 import os
 import re
@@ -18,10 +21,16 @@ class AddAuthorizedKey(Deployment):
 
     :param publicKey: public key
     :type publicKey: str
+    :param publicKeyPath: public key path
+    :type publicKeyPath: str
     """
-    def __init__(self, publicKey=os.path.expanduser("~/.ssh/id_rsa.pub")):
+    def __init__(self, publicKey=None, publicKeyPath=os.path.expanduser("~/.ssh/id_rsa.pub")):
         super(AddAuthorizedKey, self).__init__()
-        self.publicKey = publicKey
+        if publicKey:
+            self.publicKey = publicKey
+        else:
+            with open(publicKeyPath) as publicKeyFile:
+                self.publicKey = publicKeyFile.read()
 
     def run(self, node, client):
         network = client.read("/etc/sysconfig/network")
