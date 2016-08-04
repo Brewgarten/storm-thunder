@@ -205,14 +205,16 @@ class DeploymentResults(JSONSerializable):
         :param result: deployment result
         :type result: :class:`~DeploymentResult`
         """
-        if result:
+        if isinstance(result, DeploymentErrorResult):
+            if result.node.name not in self.error:
+                self.error[result.node.name] = {}
+            self.error[result.node.name][result.deployment.typeAsString] = result
+        elif isinstance(result, DeploymentResult):
             if result.node.name not in self.success:
                 self.success[result.node.name] = {}
             self.success[result.node.name][result.deployment.typeAsString] = result
         else:
-            if result.node.name not in self.error:
-                self.error[result.node.name] = {}
-            self.error[result.node.name][result.deployment.typeAsString] = result
+            raise ValueError("'{0}' needs to be of type '{1}' or {2}".format(result, DeploymentResult, DeploymentErrorResult))
 
     def addResults(self, results):
         """
@@ -272,6 +274,15 @@ class DeploymentRunError(libcloud.compute.types.DeploymentError, JSONSerializabl
             self.node.id if hasattr(self.node, "id") else self.node.name,
             self.value,
             self.driver)
+
+class NodeDeploymentException(Deployment):
+    """
+    Generic node deployment exception used for example to capture client connection issues
+    """
+
+    def run(self, node, client):
+        # this does not actually have an implementation by just a place holder
+        pass
 
 class NodesInfoMap(JSONSerializable):
     """
@@ -398,6 +409,7 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
         client = AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
                                    password=node.extra.get("password"),
                                    timeout=timeout)
+        nodeStart = datetime.datetime.utcnow()
         try:
             client.connect()
             for deployment in deployments:
@@ -415,12 +427,14 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
                     log.error("Could not run '%s.%s' on '%s': %s",
                               deployment.__class__.__module__, deployment.__class__.__name__, node.name, exception)
                     log.exception(exception)
+                results.append(result)
 
             client.close()
-            results.append(result)
         except Exception as exception:
-            # FIXME: add as deployment error to the results
+            nodeEnd = datetime.datetime.utcnow()
+            result = DeploymentErrorResult(NodeDeploymentException(), node, nodeStart, nodeEnd, exception)
             log.error("Could not run '%s' on '%s': %s", ",".join(deploymentNames), node.name, exception)
+            results.append(result)
     totalEnd = datetime.datetime.utcnow()
     log.info("Running '%s' on %d nodes took %s", ",".join(deploymentNames), len(nodes), totalEnd-totalStart)
     return DeploymentResults(results, totalStart, totalEnd)
