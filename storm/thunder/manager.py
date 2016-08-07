@@ -3,6 +3,7 @@
 Deployment management functionality
 """
 import argparse
+import inspect
 import logging
 import os
 import re
@@ -52,6 +53,10 @@ def getArgumentParser():
 
         documentation = getDocumentation(deployment)
         handlerArgumentMap = getVariableArguments(deployment.__init__)[0]
+        # add variable argument if specified in constructor
+        variableArgument = inspect.getargspec(deployment.__init__).varargs
+        if variableArgument:
+            handlerArgumentMap[variableArgument] = "_notset_"
         for name, value in sorted(handlerArgumentMap.items()):
 
             if any([action.dest == name for action in deployParser._actions]):
@@ -201,7 +206,12 @@ def main():
     deploymentClass = getattr(module, className)
 
     # create deployment instance
-    deployment = deploymentClass(**parameters)
+    variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
+    if variableArgument:
+        variableArgumentValue = parameters.pop(variableArgument.rstrip("s"))
+        deployment = deploymentClass(*variableArgumentValue, **parameters)
+    else:
+        deployment = deploymentClass(**parameters)
 
     # TODO: add argument parser option for results file
     # TODO: add argument parser option for timeout
