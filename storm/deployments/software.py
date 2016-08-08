@@ -55,42 +55,119 @@ class DeployPythonPackages(Deployment):
         return node
 
 @ClassLogger
-class DeployRPMs(Deployment):
+class InstallLocalRPMPackages(Deployment):
     """
-    Upload and install RPMs
+    Upload rpms and install them on the node.
 
-    :param rpms: the paths to rpms
+    :param rpms: rpm file names
     :type rpms: [str]
     """
-    def __init__(self, rpms):
-        super(DeployRPMs, self).__init__()
+    def __init__(self, *rpms):
         self.rpms = rpms
 
     def run(self, node, client):
+        # generate package to file mapping
+        packages = {
+            os.path.basename(fileName).strip(".rpm"): fileName
+            for fileName in self.rpms
+        }
+        installedRPMInfo = isRPMPackageInstalled(client, *packages.keys())
 
+        # collect the packages that are missing
+        missingRPMs = []
+        for packageName, installed in sorted(installedRPMInfo.items()):
+            if installed:
+                self.log.debug("Package '%s' already installed", packageName)
+            else:
+                missingRPMs.append(packages[packageName])
+
+        # upload and install the missing packages
         with RemoteTemporaryDirectory(client) as tmpDirectory:
+            uploadToDirectory = UploadToDirectory(tmpDirectory, *missingRPMs)
+            uploadToDirectory.run(node, client)
+            InstallRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client)
 
-            # upload rpms
-            uploadedRPMFileNames = []
-            for rpm in self.rpms:
-                rpmName = os.path.basename(rpm)
-                remoteRPMName = os.path.join(tmpDirectory, rpmName)
-                uploaded = client.upload(rpm.strip(), remoteRPMName)
-                if not uploaded:
-                    raise DeploymentRunError(node, "Could not upload {rpm}".format(rpm=rpmName))
-                uploadedRPMFileNames.append(remoteRPMName)
+        return node
 
-            # avoid stale metadata and caches
-            stdout, stderr, status = client.run("/usr/bin/yum clean all")
-            if status != 0:
-                raise DeploymentRunError(
-                    node, "Could not clean yum metadata and caches", status, stdout, stderr)
+@ClassLogger
+class InstallRPMPackages(Deployment):
+    """
+    Download and install rpm using yum repositories
 
-            # install uploaded rpms
-            stdout, stderr, status = client.run("/usr/bin/yum localinstall --assumeyes {0}".format(" ".join(uploadedRPMFileNames)))
-            if status != 0:
-                raise DeploymentRunError(
-                    node, "Could not deploy rpms", status, stdout, stderr)
+    :param rpms: rpm package names or rpm file names
+    :type rpms: [str]
+    """
+    def __init__(self, *rpms):
+        self.rpms = rpms
+
+    def run(self, node, client):
+        if not self.rpms:
+            return node
+        for attempt in range(3):
+            stdout, stderr, status = client.run("yum install --assumeyes {0}".format(" ".join(self.rpms)))
+            if status != 0 and "[Errno 256] No more mirrors to try." in stderr:
+                self.log.debug("Encountered yum cache mirror problem in attempt %d", attempt+1)
+                client.run("yum clean all")
+            else:
+                break
+        if status != 0:
+            if "Nothing to do" in stderr:
+                for match in re.finditer(r"/(?P<name>.*): does not update installed package.", stdout, re.MULTILINE):
+                    self.log.debug("Package '%s' older than installed package", os.path.basename(match.group("name")))
+            else:
+                raise DeploymentRunError(node, "Could not yum install '{0}' packages.".format(",".join(self.rpms)), status, stdout, stderr)
+        for match in re.finditer(r"Package (?P<name>.*) already installed", stdout, re.MULTILINE):
+            self.log.debug("Package '%s' already installed", match.group("name"))
+
+        return node
+
+@ClassLogger
+class UpdateLocalRPMPackages(Deployment):
+    """
+    Upload rpms to update existing ones on the node.
+
+    :param rpms: rpm file names
+    :type rpms: [str]
+    """
+    def __init__(self, *rpms):
+        self.rpms = rpms
+
+    def run(self, node, client):
+        with RemoteTemporaryDirectory(client) as tmpDirectory:
+            uploadToDirectory = UploadToDirectory(tmpDirectory, *self.rpms)
+            uploadToDirectory.run(node, client)
+            UpdateRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client)
+
+        return node
+
+@ClassLogger
+class UpdateRPMPackages(Deployment):
+    """
+    Download and update rpms using yum repositories
+
+    :param rpms: rpm package names or rpm file names
+    :type rpms: [str]
+    """
+    def __init__(self, *rpms):
+        self.rpms = rpms
+
+    def run(self, node, client):
+        if not self.rpms:
+            return node
+        for attempt in range(3):
+            stdout, stderr, status = client.run("yum update --assumeyes {0}".format(" ".join(self.rpms)))
+            if status != 0 and "[Errno 256] No more mirrors to try." in stderr:
+                self.log.debug("Encountered yum cache mirror problem in attempt %d", attempt+1)
+                client.run("yum clean all")
+            else:
+                break
+        if status != 0:
+            raise DeploymentRunError(node, "Could not yum update '{0}' packages.".format(",".join(self.rpms)), status, stdout, stderr)
+        # note that update does not error out when packages are not updated
+        if stderr.strip():
+            self.log.error(stderr.strip())
+        for match in re.finditer(r"/(?P<name>.*): does not update installed package.", stdout, re.MULTILINE):
+            self.log.debug("Package '%s' already updated", os.path.basename(match.group("name")))
 
         return node
 
@@ -124,3 +201,58 @@ class UpdateKernel(Deployment):
                 node, "Unable to reboot the system")
 
         return node
+
+@ClassLogger
+class UploadToDirectory(Deployment):
+    """
+    Upload files to the specified directory and return the full
+    remote paths of the files
+
+    :param directory: remote directory
+    :type directory: str
+    :param fileNames: file names
+    :type fileNames: [str]
+    """
+    def __init__(self, directory, *fileNames):
+        self.directory = directory
+        self.fileNames = fileNames
+        self.remoteFileNames = []
+
+    def run(self, node, client):
+        if not self.fileNames:
+            return node
+        self.remoteFileNames = []
+        for fileName in self.fileNames:
+            remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
+            if not client.upload(fileName.strip(), remoteFileName):
+                raise DeploymentRunError(node, "Could not upload '{0}'".format(fileName))
+            self.remoteFileNames.append(remoteFileName)
+
+        return node
+
+def isRPMPackageInstalled(client, *rpms):
+    """
+    Determine if the specified rpm packages are installed
+
+    :param client: connected SSH client
+    :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+    :param rpms: rpm package names
+    :type rpms: [str]
+    :returns: mapping of package names to bools
+    :rtype: dict
+    """
+    if not rpms:
+        return {}
+    packages = [
+        os.path.basename(rpm).strip(".rpm")
+        for rpm in rpms
+    ]
+    stdout, _, _ = client.run("rpm -q {0}".format(" ".join(packages)))
+    installed = {}
+    for line in stdout.splitlines():
+        match = re.match(r"package (?P<name>.+) is not installed", line)
+        if match:
+            installed[match.group("name")] = False
+        else:
+            installed[line] = True
+    return installed
