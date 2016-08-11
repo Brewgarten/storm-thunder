@@ -14,6 +14,7 @@ from storm.thunder.base import (NodesInfoMap,
                                 deploy,
                                 getDeployments,
                                 getDocumentation)
+from storm.thunder.configuration import DeploymentInfos
 
 
 log = logging.getLogger(__name__)
@@ -106,6 +107,29 @@ def getArgumentParser():
 
     return parser
 
+def getConfigArgumentParser():
+    """
+    Configuration file argument parser
+    """
+    parser = argparse.ArgumentParser(description="A utility to perform deployments on nodes",
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--config",
+                        type=argparse.FileType("r"),
+                        help="deployment configuration")
+    parser.add_argument("--nodes-json",
+                        required=True,
+                        metavar="nodes.json",
+                        type=argparse.FileType("r"),
+                        help="nodes information")
+    parser.add_argument("--usePrivateIps",
+                        action="store_true",
+                        default=False,
+                        help="use private ip to connect to nodes instead of the public one (default value 'False')")
+    parser.add_argument("-v", "--verbose",
+                        action="count",
+                        help="display debug information")
+    return parser
+
 # TODO: move to utils
 def getFilenames(listFile=None, fileNames=None):
     """
@@ -133,7 +157,6 @@ def getFilenames(listFile=None, fileNames=None):
         elif os.path.isdir(absolutePath):
             # include all files in the directory
             for subpath in os.listdir(absolutePath):
-                log.fatal(subpath)
                 paths.append(os.path.join(absolutePath, subpath))
         else:
             paths.append(absolutePath)
@@ -145,8 +168,18 @@ def main():
     """
     logging.basicConfig(format='%(asctime)s [%(levelname)s] [%(name)s(%(filename)s:%(lineno)d)] - %(message)s', level=logging.INFO)
 
-    parser = getArgumentParser()
-    args = parser.parse_args()
+    # check if config specified
+    usingConfigFile = False
+    configParser = getConfigArgumentParser()
+    args, _ = configParser.parse_known_args()
+    if args.config:
+        # use configuration file parser
+        args = configParser.parse_args()
+        usingConfigFile = True
+    else:
+        # use cli parser
+        parser = getArgumentParser()
+        args = parser.parse_args()
 
     logging.getLogger("storm").setLevel(logging.INFO)
     logging.getLogger("storm.thunder.client.AdvancedSSHClient").setLevel(logging.INFO)
@@ -170,7 +203,7 @@ def main():
 
     nodesInformation = NodesInfoMap.fromJSONFile(args.nodes_json.name)
 
-    if args.nodes:
+    if not usingConfigFile and args.nodes:
         nodes = nodesInformation.getNodesByNames(args.nodes)
     else:
         nodes = nodesInformation.nodes.values()
@@ -182,44 +215,67 @@ def main():
                 raise ValueError("Node {}{} does not have private IP".format(node.name,
                                                                              '(id={})'.format(node.id) if hasattr(node, 'id') else ''))
 
-    log.info("Deploying on nodes: %s", ",".join(node.name for node in nodes))
+    if usingConfigFile:
+        config = args.config.read()
+        args.config.close()
+        if args.config.name.endswith(".json"):
+            deploymentInfos = DeploymentInfos.fromJSON(config)
+        elif args.config.name.endswith(".storm"):
+            deploymentInfos = DeploymentInfos.fromHjson(config)
+        else:
+            log.error("Unknown config file format, please specify a '.json' or '.storm' file")
+            return 1
 
-    parameters = {
-        name: value
-        for name, value in args.__dict__.items()
-        if not name.startswith("_")
-    }
+        for deploymentInfo in deploymentInfos.deployments:
+            if deploymentInfo.nodes:
+                deploymentNodes = nodesInformation.getNodesByNames(deploymentInfo.nodes)
+            else:
+                deploymentNodes = nodes
+            results = deploy(deploymentInfo.deployment, deploymentNodes, usePrivateIps=args.usePrivateIps)
+            if results.numberOfErrors > 0:
+                return results.numberOfErrors
 
-    # remove common options
-    usePrivateIps = parameters.pop("usePrivateIps", False)
-    fullDeploymentClassName = "storm.deployments.{0}".format(parameters.pop("deployment"))
-    parameters.pop("nodes", None)
-    parameters.pop("nodes_json", None)
-    parameters.pop("verbose", None)
+        return 0
 
-    # get class info
-    info = fullDeploymentClassName.split(".")
-    className = info.pop()
-    moduleName = ".".join(info)
-
-    # load class from module
-    module = __import__(moduleName, fromlist=[className])
-    deploymentClass = getattr(module, className)
-
-    # create deployment instance
-    variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
-    if variableArgument:
-        variableArgumentValue = parameters.pop(variableArgument)
-        deployment = deploymentClass(*variableArgumentValue, **parameters)
     else:
-        deployment = deploymentClass(**parameters)
+        log.info("Deploying on nodes: %s", ",".join(node.name for node in nodes))
 
-    # TODO: add argument parser option for results file
-    # TODO: add argument parser option for timeout
-    results = deploy(deployment, nodes, usePrivateIps=usePrivateIps)
+        parameters = {
+            name: value
+            for name, value in args.__dict__.items()
+            if not name.startswith("_")
+        }
 
-    # TODO: display detailled information on success and errors
-    return results.numberOfErrors
+        # remove common options
+        usePrivateIps = parameters.pop("usePrivateIps", False)
+        fullDeploymentClassName = "storm.deployments.{0}".format(parameters.pop("deployment"))
+        parameters.pop("nodes", None)
+        parameters.pop("nodes_json", None)
+        parameters.pop("verbose", None)
+
+        # get class info
+        info = fullDeploymentClassName.split(".")
+        className = info.pop()
+        moduleName = ".".join(info)
+
+        # load class from module
+        module = __import__(moduleName, fromlist=[className])
+        deploymentClass = getattr(module, className)
+
+        # create deployment instance
+        variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
+        if variableArgument:
+            variableArgumentValue = parameters.pop(variableArgument)
+            deployment = deploymentClass(*variableArgumentValue, **parameters)
+        else:
+            deployment = deploymentClass(**parameters)
+
+        # TODO: add argument parser option for results file
+        # TODO: add argument parser option for timeout
+        results = deploy(deployment, nodes, usePrivateIps=usePrivateIps)
+
+        # TODO: display detailled information on success and errors
+        return results.numberOfErrors
 
 if __name__ == '__main__':
     sys.exit(main())

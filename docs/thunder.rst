@@ -8,5 +8,5 @@ Contents:
 
    thunder/base
    thunder/client
-   thunder/errors
+   thunder/configuration
    thunder/manager

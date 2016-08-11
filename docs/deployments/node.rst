@@ -1,7 +1,7 @@
-Errors
-======
+Node
+====
 
-.. automodule:: storm.thunder.errors
+.. automodule:: storm.deployments.node
   :members:
   :undoc-members:
   :show-inheritance:
