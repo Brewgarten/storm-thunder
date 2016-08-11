@@ -24,12 +24,12 @@ class AddAuthorizedKey(Deployment):
     :param publicKeyPath: public key path
     :type publicKeyPath: str
     """
-    def __init__(self, publicKey=None, publicKeyPath=os.path.expanduser("~/.ssh/id_rsa.pub")):
+    def __init__(self, publicKey=None, publicKeyPath="~/.ssh/id_rsa.pub"):
         super(AddAuthorizedKey, self).__init__()
         if publicKey:
             self.publicKey = publicKey
         else:
-            with open(publicKeyPath) as publicKeyFile:
+            with open(os.path.expanduser(publicKeyPath)) as publicKeyFile:
                 self.publicKey = publicKeyFile.read()
 
     def run(self, node, client):
