@@ -45,6 +45,7 @@ without parameters
     ]
 
 """
+import inspect
 import logging
 import re
 
@@ -198,13 +199,21 @@ class DeploymentInfo(HjsonSerializable, JSONSerializable):
         deploymentClass = getattr(module, className)
 
         handlerArgumentMap, _, leftOverKeywords = getVariableArguments(deploymentClass.__init__, **parameters)
+
+        variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
+        if variableArgument:
+            variableArgumentValue = leftOverKeywords.pop(variableArgument)
+            deployment = deploymentClass(*variableArgumentValue, **handlerArgumentMap)
+        else:
+            deployment = deploymentClass(**handlerArgumentMap)
+
         for key, value in leftOverKeywords.items():
             cls.log.warn("Key '%s' with value '%s' is not a valid parameter for '%s'", key, value, deploymentClassName)
 
         if nodes:
-            return cls(deploymentClass(**handlerArgumentMap), *nodes)
+            return cls(deployment, *nodes)
         else:
-            return cls(deploymentClass(**handlerArgumentMap))
+            return cls(deployment)
 
 def getTypedParameter(dictionary, name, expectedType, default=None):
     """
