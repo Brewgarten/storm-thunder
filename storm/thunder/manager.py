@@ -170,10 +170,9 @@ def main():
 
     # check if config specified
     usingConfigFile = False
-    configParser = getConfigArgumentParser()
-    args, _ = configParser.parse_known_args()
-    if args.config:
+    if "--config" in sys.argv[1:]:
         # use configuration file parser
+        configParser = getConfigArgumentParser()
         args = configParser.parse_args()
         usingConfigFile = True
     else:
