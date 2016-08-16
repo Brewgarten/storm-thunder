@@ -22,6 +22,15 @@ PARAMETER_DOC_REGEX = re.compile(r"\s*:(?P<docType>\w+)\s+(?P<name>\w+):\s+(?P<d
 
 log = logging.getLogger(__name__)
 
+class BaseDeployment(JSONSerializable):
+    """
+    Base deployment class
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        super(BaseDeployment, self).__init__()
+
 class BaseNodeInfo(JSONSerializable):
     """
     Base node information object that contains name, public ip address and ssh password
@@ -44,27 +53,26 @@ class BaseNodeInfo(JSONSerializable):
         if password:
             self.extra["password"] = password
 
-class ClusterDeployment(libcloud.compute.deployment.Deployment, JSONSerializable):
+class ClusterDeployment(BaseDeployment):
     """
     Base cluster deployment class
-
-    :param usePrivateIps: use private ip to connect to nodes instead of the public one
-    :type usePrivateIps: bool
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, usePrivateIps=False):
-        self.usePrivateIps = usePrivateIps
+    def __init__(self):
+        super(ClusterDeployment, self).__init__()
 
     @abstractmethod
-    def run(self, nodes):
+    def run(self, nodes, clients):
         """
         Run cluster-wide deployment on speficied nodes
 
         :param nodes: the nodes
         :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
-        :returns: deployment results
-        :rtype: :class:`~DeploymentResults`
+        :param clients: node name to connected SSH client mapping
+        :type clients: dict
+        :returns: nodes
+        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         """
 
 # TODO: add JSONSerializable date to c4.utils
@@ -101,11 +109,14 @@ class Datetime(JSONSerializable):
         else:
             return formattedDateString
 
-class Deployment(libcloud.compute.deployment.Deployment, JSONSerializable):
+class Deployment(BaseDeployment, libcloud.compute.deployment.Deployment):
     """
     Base deployment class
     """
     __metaclass__ = ABCMeta
+
+    def __init__(self):
+        super(Deployment, self).__init__()
 
     @abstractmethod
     def run(self, node, client):
@@ -134,8 +145,8 @@ class DeploymentResult(JSONSerializable):
     :type end: :class:`datetime.datetime`
     """
     def __init__(self, deployment, node, start, end):
-        if not isinstance(deployment, Deployment):
-            raise ValueError("'{0}' needs to be of type '{1}'".format(deployment, Deployment))
+        if not isinstance(deployment, BaseDeployment):
+            raise ValueError("'{0}' needs to be of type '{1}'".format(deployment, BaseDeployment))
         self.deployment = deployment
 
         if not isinstance(node, (libcloud.compute.base.Node, BaseNodeInfo)):
@@ -186,33 +197,25 @@ class DeploymentResults(JSONSerializable):
     """
     Deployment results
 
-    :param results: deployment results
-    :type results: [:class:`~DeploymentResult`]
     :param start: start time
     :type start: :class:`datetime.datetime`
     :param end: end time
     :type end: :class:`datetime.datetime`
     """
-    def __init__(self, results, start, end):
-        self.success = {}
-        self.error = {}
-        self.addResults(results)
-        self.start = Datetime(start)
-        self.end = Datetime(end)
+    def __init__(self, start=None, end=None):
+        self.steps = []
+        self.start = Datetime(start) if start else Datetime(datetime.datetime.utcnow())
+        self.end = Datetime(end) if start else Datetime(datetime.datetime.utcnow())
 
     def addResult(self, result):
         """
         :param result: deployment result
         :type result: :class:`~DeploymentResult`
         """
-        if isinstance(result, DeploymentErrorResult):
-            if result.node.name not in self.error:
-                self.error[result.node.name] = {}
-            self.error[result.node.name][result.deployment.typeAsString] = result
-        elif isinstance(result, DeploymentResult):
-            if result.node.name not in self.success:
-                self.success[result.node.name] = {}
-            self.success[result.node.name][result.deployment.typeAsString] = result
+        if isinstance(result, (DeploymentResult, DeploymentErrorResult)):
+            self.steps.append({
+                result.node.name: result
+            })
         else:
             raise ValueError("'{0}' needs to be of type '{1}' or {2}".format(result, DeploymentResult, DeploymentErrorResult))
 
@@ -221,17 +224,21 @@ class DeploymentResults(JSONSerializable):
         :param results: deployment results
         :type results: [:class:`~DeploymentResult`]
         """
-        for result in results:
-            self.addResult(result)
+        self.steps.append({
+            result.node.name: result
+            for result in results
+        })
 
     @property
     def numberOfErrors(self):
         """
         Number of deployments with errors
         """
-        return sum([
-            len(deploymentResults)
-            for deploymentResults in self.error.values()
+        return len([
+            deploymentResult
+            for step in self.steps
+            for deploymentResult in step.values()
+            if isinstance(deploymentResult, DeploymentErrorResult)
         ])
 
 class DeploymentRunError(libcloud.compute.types.DeploymentError, JSONSerializable):
@@ -281,7 +288,7 @@ class NodeDeploymentException(Deployment):
     """
 
     def run(self, node, client):
-        # this does not actually have an implementation by just a place holder
+        # this does not actually have an implementation but is just a place holder
         pass
 
 class NodesInfoMap(JSONSerializable):
@@ -384,7 +391,7 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
     :rtype: :class:`~DeploymentResults`
     """
     totalStart = datetime.datetime.utcnow()
-    results = []
+    deploymentResults = DeploymentResults()
 
     # make sure we have a list of deployments
     if isinstance(deploymentOrDeploymentList, collections.Sequence):
@@ -401,43 +408,87 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
     if not deployments:
         log.error("Nothing to deploy")
         totalEnd = datetime.datetime.utcnow()
-        return DeploymentResults(results, totalStart, totalEnd)
+        return DeploymentResults(totalStart, totalEnd)
 
     deploymentNames = [deployment.typeAsString for deployment in deployments]
 
-    for node in nodes:
-        client = AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
-                                   password=node.extra.get("password"),
-                                   timeout=timeout)
-        nodeStart = datetime.datetime.utcnow()
-        try:
-            client.connect()
-            for deployment in deployments:
-                start = datetime.datetime.utcnow()
+    for deployment in deployments:
+
+        deploymentStart = datetime.datetime.utcnow()
+
+        if isinstance(deployment, ClusterDeployment):
+
+            clients = {
+                node.name: AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
+                                             password=node.extra.get("password"),
+                                             timeout=timeout)
+                for node in nodes
+            }
+            try:
+                for client in clients.values():
+                    client.connect()
                 try:
-                    deployment.run(node, client)
-                    end = datetime.datetime.utcnow()
-                    result = DeploymentResult(deployment, node, start, end)
-                    log.info("Running '%s.%s' on '%s' took %s",
-                             deployment.__class__.__module__, deployment.__class__.__name__, node.name, end-start)
-
+                    deployment.run(nodes, clients)
+                    deploymentEnd = datetime.datetime.utcnow()
+                    deploymentResults.addResult(DeploymentResult(deployment, nodes[0], deploymentStart, deploymentEnd))
+                except DeploymentRunError as deploymentRunError:
+                    deploymentEnd = datetime.datetime.utcnow()
+                    deploymentResults.addResult(DeploymentErrorResult(deployment, deploymentRunError.node, deploymentStart, deploymentEnd, deploymentRunError))
+                    log.error("Could not run '%s' on '%s': %s",
+                              deployment.typeAsString, ",".join(node.name for node in nodes), deploymentRunError)
                 except Exception as exception:
-                    end = datetime.datetime.utcnow()
-                    result = DeploymentErrorResult(deployment, node, start, end, exception)
-                    log.error("Could not run '%s.%s' on '%s': %s",
-                              deployment.__class__.__module__, deployment.__class__.__name__, node.name, exception)
+                    deploymentEnd = datetime.datetime.utcnow()
+                    deploymentResults.addResult(DeploymentErrorResult(deployment, nodes[0], deploymentStart, deploymentEnd, exception))
+                    log.error("Could not run '%s' on '%s': %s",
+                              deployment.typeAsString, ",".join(node.name for node in nodes), exception)
                     log.exception(exception)
-                results.append(result)
+                for client in clients.values():
+                    client.close()
+            except Exception as exception:
+                deploymentEnd = datetime.datetime.utcnow()
+                deploymentResults.addResult(DeploymentErrorResult(NodeDeploymentException(), nodes[0], deploymentStart, deploymentEnd, exception))
+                log.error("Could not run '%s' on '%s': %s",
+                          deployment.typeAsString, ",".join(node.name for node in nodes), exception)
 
-            client.close()
-        except Exception as exception:
-            nodeEnd = datetime.datetime.utcnow()
-            result = DeploymentErrorResult(NodeDeploymentException(), node, nodeStart, nodeEnd, exception)
-            log.error("Could not run '%s' on '%s': %s", ",".join(deploymentNames), node.name, exception)
-            results.append(result)
+        else:
+            nodeDeploymentResults = []
+            for node in nodes:
+                client = AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
+                                           password=node.extra.get("password"),
+                                           timeout=timeout)
+                try:
+                    client.connect()
+                    nodeStart = datetime.datetime.utcnow()
+                    try:
+                        deployment.run(node, client)
+                        nodeEnd = datetime.datetime.utcnow()
+                        nodeDeploymentResults.append(DeploymentResult(deployment, node, nodeStart, nodeEnd))
+                        log.info("Running '%s' on '%s' took %s",
+                                 deployment.typeAsString, node.name, nodeEnd-nodeStart)
+
+                    except Exception as exception:
+                        nodeEnd = datetime.datetime.utcnow()
+                        nodeDeploymentResults.append(DeploymentErrorResult(deployment, node, nodeStart, nodeEnd, exception))
+                        log.error("Could not run '%s' on '%s': %s",
+                                  deployment.typeAsString, node.name, exception)
+                        log.exception(exception)
+                    client.close()
+                except Exception as exception:
+                    nodeEnd = datetime.datetime.utcnow()
+                    nodeDeploymentResults.append(DeploymentErrorResult(NodeDeploymentException(), node, nodeStart, nodeEnd, exception))
+                    log.error("Could not run '%s' on '%s': %s",
+                              deployment.typeAsString, node.name, exception)
+
+            deploymentEnd = datetime.datetime.utcnow()
+            deploymentResults.addResults(nodeDeploymentResults)
+            log.info("Running '%s' on %d nodes took %s", deployment.typeAsString, len(nodes), deploymentEnd-deploymentStart)
+
     totalEnd = datetime.datetime.utcnow()
-    log.info("Running '%s' on %d nodes took %s", ",".join(deploymentNames), len(nodes), totalEnd-totalStart)
-    return DeploymentResults(results, totalStart, totalEnd)
+    # adjust end time
+    deploymentResults.end = Datetime(totalEnd)
+    if len(deployments) > 1:
+        log.info("Running '%s' on %d nodes took %s", ",".join(deploymentNames), len(nodes), totalEnd-totalStart)
+    return deploymentResults
 
 def getDeployments():
     """
@@ -448,7 +499,7 @@ def getDeployments():
     """
     deployments = {}
     import storm.deployments
-    deploymentClasses = getModuleClasses(storm.deployments, Deployment) + getModuleClasses(storm.deployments, ClusterDeployment)
+    deploymentClasses = getModuleClasses(storm.deployments, BaseDeployment)
     for deployment in deploymentClasses:
         # get module name without the common storm.deployments prefix
         moduleName = getFullModuleName(deployment).replace("storm.deployments.", "")
