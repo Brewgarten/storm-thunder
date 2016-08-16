@@ -130,6 +130,41 @@ def getConfigArgumentParser():
                         help="display debug information")
     return parser
 
+def getDeploymentSections(deploymentInfos, nodesInformation):
+    """
+    Combine deployments to the same nodes into lists in order to save on connect/disconnect time
+
+    :param deploymentInfos: deployment infos
+    :type: :class:`~storm.thunder.configuration.DeploymentInfos`
+    :param nodesInformation: nodes information
+    :rtype: :class:`~storm.thunder.NodesInfoMap`
+    :returns: deployment sections
+    :rtype: [([:class:`~storm.thunder.BaseDeployment`], [:class:`~BaseNodeInfo`])]
+    """
+    deploymentSections = []
+    currentNodes = []
+    currentSection = []
+
+    for deploymentInfo in deploymentInfos.deployments:
+        if deploymentInfo.nodes:
+            deploymentNodes = nodesInformation.getNodesByNames(deploymentInfo.nodes)
+        else:
+            deploymentNodes = nodesInformation.nodes.values()
+        currentNodeNames = set([node.name for node in currentNodes])
+        nodeNames = set([node.name for node in deploymentNodes])
+        if currentNodeNames == nodeNames:
+            currentSection.append(deploymentInfo.deployment)
+        else:
+            if currentSection:
+                deploymentSections.append((currentSection, currentNodes))
+            currentNodes = deploymentNodes
+            currentSection = [deploymentInfo.deployment]
+
+    if currentSection:
+        deploymentSections.append((currentSection, currentNodes))
+
+    return deploymentSections
+
 # TODO: move to utils
 def getFilenames(listFile=None, fileNames=None):
     """
@@ -225,13 +260,10 @@ def main():
             log.error("Unknown config file format, please specify a '.json' or '.storm' file")
             return 1
 
-        for deploymentInfo in deploymentInfos.deployments:
-            if deploymentInfo.nodes:
-                deploymentNodes = nodesInformation.getNodesByNames(deploymentInfo.nodes)
-            else:
-                deploymentNodes = nodes
-            results = deploy(deploymentInfo.deployment, deploymentNodes, usePrivateIps=args.usePrivateIps)
-            if results.numberOfErrors > 0:
+        for deploymentSection in getDeploymentSections(deploymentInfos, nodesInformation):
+            deployments, nodes = deploymentSection
+            results = deploy(deployments, nodes, usePrivateIps=args.usePrivateIps)
+            if results.numberOfErrors:
                 return results.numberOfErrors
 
         return 0

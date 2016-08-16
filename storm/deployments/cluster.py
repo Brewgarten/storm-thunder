@@ -1,13 +1,13 @@
 """
 Cluster deployments
 """
-import datetime
 import logging
 
 from c4.utils.logutil import ClassLogger
 
 from ..thunder import (ClusterDeployment,
-                       DeploymentRunError)
+                       DeploymentRunError,
+                       deploy)
 from .ssh import (AddAuthorizedKey, AddKnownHost, AddToEtcHosts,
                   GenerateHostSSHKeys, GenerateSSHKeys)
 
@@ -46,9 +46,7 @@ class AddNodesToEtcHosts(ClusterDeployment):
                 deployments.append(AddToEtcHosts(node.public_ips[0], hostnames))
 
         # go through all nodes and add node information of all other nodes to /etc/hosts
-        for node in nodes:
-            for deployment in deployments:
-                deployment.run(node, clients[node.name])
+        deploy(deployments, nodes)
 
         return nodes
 
@@ -65,26 +63,20 @@ class SetupPasswordlessSSH(ClusterDeployment):
         sshKeys = []
 
         self.log.info("Getting ssh keys from hosts in the cluster")
+        deploy([GenerateHostSSHKeys(), GenerateSSHKeys()], nodes)
         for node in nodes:
             try:
-                GenerateHostSSHKeys().run(node, clients[node.name])
-                GenerateSSHKeys().run(node, clients[node.name])
                 hostKeys[node.name] = clients[node.name].read("/etc/ssh/ssh_host_rsa_key.pub")
                 sshKeys.append(clients[node.name].read('/root/.ssh/id_rsa.pub'))
             except Exception as exception:
                 raise DeploymentRunError(node, "Could not get ssh keys from '{0}': {1}".format(node.name, exception))
 
         self.log.info("Deploying passwordless SSH")
-        for node in nodes:
-            try:
-                start = datetime.datetime.utcnow()
-                for host, key in hostKeys.items():
-                    AddKnownHost(host, key).run(node, clients[node.name])
-                for sshKey in sshKeys:
-                    AddAuthorizedKey(sshKey).run(node, clients[node.name])
-                end = datetime.datetime.utcnow()
-                log.info("Running 'passwordless SSH deployment' on '%s' nodes took %s", node.name, end-start)
-            except Exception as exception:
-                raise DeploymentRunError(node, "Could not run 'passwordless SSH deployment' on '{0}': {1}".format(node.name, exception))
+        deployments = []
+        for host, key in hostKeys.items():
+            deployments.append(AddKnownHost(host, key))
+        for sshKey in sshKeys:
+            deployments.append(AddAuthorizedKey(sshKey))
+        deploy(deployments, nodes)
 
         return nodes

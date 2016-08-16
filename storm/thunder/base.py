@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 import collections
 import datetime
 import logging
+from multiprocessing.dummy import Pool as ThreadPool
 import re
 
 import libcloud.compute.base
@@ -282,14 +283,12 @@ class DeploymentRunError(libcloud.compute.types.DeploymentError, JSONSerializabl
             self.value,
             self.driver)
 
-class NodeDeploymentException(Deployment):
+class NodeDeploymentException(BaseDeployment):
     """
     Generic node deployment exception used for example to capture client connection issues
     """
-
-    def run(self, node, client):
-        # this does not actually have an implementation but is just a place holder
-        pass
+    def __init__(self):
+        super(NodeDeploymentException, self).__init__()
 
 class NodesInfoMap(JSONSerializable):
     """
@@ -374,7 +373,6 @@ class NodesInfoMap(JSONSerializable):
 
         return nodes
 
-
 def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=False):
     """
     Run specified deployment on the nodes
@@ -412,76 +410,110 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
 
     deploymentNames = [deployment.typeAsString for deployment in deployments]
 
+    # TODO: determine parallism or make configurable through option
+    # TODO: determine if we want to switch to regular process pool or keep using threads while assuming most of the processing is done on the nodes
+    pool = ThreadPool(processes=4)
+
+    def connectClient(node):
+        """
+        Connect SSH client to the specified node
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :returns: node, connected client
+        :rtype: (:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`, :class:`~libcloud.compute.ssh.BaseSSHClient`)
+        """
+        client = AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
+                                   password=node.extra.get("password"),
+                                   timeout=timeout)
+        try:
+            client.connect()
+        except Exception as exception:
+            log.error("Could not connect to node '%s': %s", node.name, exception)
+            return node, None
+        return node, client
+
+    connectedClients = pool.map(connectClient, nodes)
+
+    # check for errors in case we could not connect
+    if any([not client for _, client in connectedClients]):
+        log.error("Found problems connecting to the nodes, stopping deployments")
+        totalEnd = datetime.datetime.utcnow()
+        deploymentResults = DeploymentResults(totalStart, totalEnd)
+        deploymentResults.addResult(DeploymentErrorResult(NodeDeploymentException(), nodes[0], totalStart, totalEnd, "Found problems connecting to the nodes, stopping deployments"))
+        return deploymentResults
+
+    clients = {
+        node.name: client
+        for node, client in connectedClients
+    }
+
     for deployment in deployments:
 
         deploymentStart = datetime.datetime.utcnow()
 
         if isinstance(deployment, ClusterDeployment):
 
-            clients = {
-                node.name: AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
-                                             password=node.extra.get("password"),
-                                             timeout=timeout)
-                for node in nodes
-            }
             try:
-                for client in clients.values():
-                    client.connect()
-                try:
-                    deployment.run(nodes, clients)
-                    deploymentEnd = datetime.datetime.utcnow()
-                    deploymentResults.addResult(DeploymentResult(deployment, nodes[0], deploymentStart, deploymentEnd))
-                except DeploymentRunError as deploymentRunError:
-                    deploymentEnd = datetime.datetime.utcnow()
-                    deploymentResults.addResult(DeploymentErrorResult(deployment, deploymentRunError.node, deploymentStart, deploymentEnd, deploymentRunError))
-                    log.error("Could not run '%s' on '%s': %s",
-                              deployment.typeAsString, ",".join(node.name for node in nodes), deploymentRunError)
-                except Exception as exception:
-                    deploymentEnd = datetime.datetime.utcnow()
-                    deploymentResults.addResult(DeploymentErrorResult(deployment, nodes[0], deploymentStart, deploymentEnd, exception))
-                    log.error("Could not run '%s' on '%s': %s",
-                              deployment.typeAsString, ",".join(node.name for node in nodes), exception)
-                    log.exception(exception)
-                for client in clients.values():
-                    client.close()
+                deployment.run(nodes, clients)
+                deploymentEnd = datetime.datetime.utcnow()
+                deploymentResults.addResult(DeploymentResult(deployment, nodes[0], deploymentStart, deploymentEnd))
+            except DeploymentRunError as deploymentRunError:
+                deploymentEnd = datetime.datetime.utcnow()
+                deploymentResults.addResult(DeploymentErrorResult(deployment, deploymentRunError.node, deploymentStart, deploymentEnd, deploymentRunError))
+                log.error("Could not run '%s' on '%s': %s",
+                          deployment.typeAsString, ",".join(node.name for node in nodes), deploymentRunError)
             except Exception as exception:
                 deploymentEnd = datetime.datetime.utcnow()
-                deploymentResults.addResult(DeploymentErrorResult(NodeDeploymentException(), nodes[0], deploymentStart, deploymentEnd, exception))
+                deploymentResults.addResult(DeploymentErrorResult(deployment, nodes[0], deploymentStart, deploymentEnd, exception))
                 log.error("Could not run '%s' on '%s': %s",
                           deployment.typeAsString, ",".join(node.name for node in nodes), exception)
+                log.exception(exception)
 
         else:
-            nodeDeploymentResults = []
-            for node in nodes:
-                client = AdvancedSSHClient(node.private_ips[0] if usePrivateIps else node.public_ips[0],
-                                           password=node.extra.get("password"),
-                                           timeout=timeout)
+            def nodeDeploy(nodeClientTuple):
+                """
+                Individual worker function performing the deployment on the specified node
+                """
+                node, client = nodeClientTuple
+                nodeStart = datetime.datetime.utcnow()
                 try:
-                    client.connect()
-                    nodeStart = datetime.datetime.utcnow()
-                    try:
-                        deployment.run(node, client)
-                        nodeEnd = datetime.datetime.utcnow()
-                        nodeDeploymentResults.append(DeploymentResult(deployment, node, nodeStart, nodeEnd))
-                        log.info("Running '%s' on '%s' took %s",
-                                 deployment.typeAsString, node.name, nodeEnd-nodeStart)
+                    deployment.run(node, client)
+                    nodeEnd = datetime.datetime.utcnow()
+                    result = DeploymentResult(deployment, node, nodeStart, nodeEnd)
+                    log.info("Running '%s' on '%s' took %s",
+                             deployment.typeAsString, node.name, nodeEnd-nodeStart)
 
-                    except Exception as exception:
-                        nodeEnd = datetime.datetime.utcnow()
-                        nodeDeploymentResults.append(DeploymentErrorResult(deployment, node, nodeStart, nodeEnd, exception))
-                        log.error("Could not run '%s' on '%s': %s",
-                                  deployment.typeAsString, node.name, exception)
-                        log.exception(exception)
-                    client.close()
                 except Exception as exception:
                     nodeEnd = datetime.datetime.utcnow()
-                    nodeDeploymentResults.append(DeploymentErrorResult(NodeDeploymentException(), node, nodeStart, nodeEnd, exception))
+                    result = DeploymentErrorResult(deployment, node, nodeStart, nodeEnd, exception)
                     log.error("Could not run '%s' on '%s': %s",
                               deployment.typeAsString, node.name, exception)
+                    log.exception(exception)
+                return result
+
+            nodeDeploymentResults = pool.map(nodeDeploy, connectedClients)
 
             deploymentEnd = datetime.datetime.utcnow()
             deploymentResults.addResults(nodeDeploymentResults)
             log.info("Running '%s' on %d nodes took %s", deployment.typeAsString, len(nodes), deploymentEnd-deploymentStart)
+
+        if deploymentResults.numberOfErrors:
+            log.error("Found deployment with errors, stopping subsequent deployments")
+            break
+
+    def closeClient(client):
+        """
+        Close/disconnect client
+
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        """
+        client.close()
+    pool.map(closeClient, [nodeClient[1] for nodeClient in connectedClients])
+
+    pool.close()
+    pool.join()
 
     totalEnd = datetime.datetime.utcnow()
     # adjust end time
