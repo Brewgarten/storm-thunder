@@ -23,25 +23,33 @@ class AddAuthorizedKey(Deployment):
     :type publicKey: str
     :param publicKeyPath: public key path
     :type publicKeyPath: str
+    :param user: user
+    :type user: str
     """
-    def __init__(self, publicKey=None, publicKeyPath="~/.ssh/id_rsa.pub"):
+    def __init__(self, publicKey=None, publicKeyPath="~/.ssh/id_rsa.pub", user=None):
         super(AddAuthorizedKey, self).__init__()
         if publicKey:
             self.publicKey = publicKey
         else:
             with open(os.path.expanduser(publicKeyPath)) as publicKeyFile:
                 self.publicKey = publicKeyFile.read()
+        self.userHome = os.path.join("/home", user) if user else "/root"
 
     def run(self, node, client):
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir("/root/.ssh")
-        if not client.isFile("/root/.ssh/authorized_keys"):
-            client.touch("/root/.ssh/authorized_keys")
+        log.fatal(self.userHome)
+        log.fatal(self.publicKey)
+
+        client.mkdir(os.path.join(self.userHome, ".ssh"))
+        authorizedKeysPath = os.path.join(self.userHome, ".ssh", "authorized_keys")
+        if not client.isFile(authorizedKeysPath):
+            client.touch(authorizedKeysPath)
 
         # check if public key already authorized
-        authorizedKeys = client.read("/root/.ssh/authorized_keys")
+        authorizedKeys = client.read(authorizedKeysPath)
+        log.fatal("'%s' '%s'", hostname, authorizedKeys)
         alreadyAuthorized = False
         for authorizedKey in authorizedKeys.splitlines():
             if authorizedKey.strip() == self.publicKey.strip():
@@ -49,8 +57,9 @@ class AddAuthorizedKey(Deployment):
                 alreadyAuthorized = True
                 break
 
+        log.fatal(alreadyAuthorized)
         if not alreadyAuthorized:
-            client.put("/root/.ssh/authorized_keys", contents=self.publicKey, mode="a", chmod=0600)
+            client.put(authorizedKeysPath, contents=self.publicKey, mode="a", chmod=0600)
 
         return node
 
@@ -64,21 +73,23 @@ class AddKnownHost(Deployment):
     :param hostPublicKey: host public key
     :type hostPublicKey: str
     """
-    def __init__(self, host, hostPublicKey):
+    def __init__(self, host, hostPublicKey, user=None):
         super(AddKnownHost, self).__init__()
         self.host = host
         self.hostPublicKey = hostPublicKey
+        self.userHome = os.path.join("/home", user) if user else "/root"
 
     def run(self, node, client):
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir("/root/.ssh")
-        if not client.isFile("/root/.ssh/known_hosts"):
-            client.touch("/root/.ssh/known_hosts")
+        client.mkdir(os.path.join(self.userHome, ".ssh"))
+        knownHostsPath = os.path.join(self.userHome, ".ssh", "known_hosts")
+        if not client.isFile(knownHostsPath):
+            client.touch(knownHostsPath)
 
         # check if host public key already known
-        knownHosts = client.read("/root/.ssh/known_hosts")
+        knownHosts = client.read(knownHostsPath)
         alreadyKnown = False
         for knownHost in knownHosts.splitlines():
             if knownHost.startswith(self.host):
@@ -89,10 +100,10 @@ class AddKnownHost(Deployment):
 
         if not alreadyKnown:
             knownHostEntry = "{0} {1}".format(self.host, self.hostPublicKey)
-            client.put("/root/.ssh/known_hosts", contents=knownHostEntry, mode="a")
+            client.put(knownHostsPath, contents=knownHostEntry, mode="a")
             if '.' in self.host:
                 knownShortHostEntry = "{0} {1}".format(self.host[0:self.host.index('.')], self.hostPublicKey)
-                client.put("/root/.ssh/known_hosts", contents=knownShortHostEntry, mode="a")
+                client.put(knownHostsPath, contents=knownShortHostEntry, mode="a")
 
         return node
 
@@ -164,17 +175,22 @@ class GenerateSSHKeys(Deployment):
     """
     Generate SSH keys on the guest
 
+    :param user: user
+    :type user: str
     """
-    def __init__(self):
+    def __init__(self, user=None):
         super(GenerateSSHKeys, self).__init__()
+        self.userHome = os.path.join("/home", user) if user else "/root"
 
     def run(self, node, client):
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir("/root/.ssh")
-        if client.isFile("/root/.ssh/id_rsa.pub"):
-            self.log.warn("'%s' already has existing key '/root/.ssh/id_rsa.pub'", hostname)
+        client.mkdir(os.path.join(self.userHome, ".ssh"))
+        privateKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa")
+        publicKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa.pub")
+        if client.isFile(publicKeyPath):
+            self.log.warn("'%s' already has existing key '%s'", hostname, publicKeyPath)
 
         else:
             # check for existing key pair
@@ -187,9 +203,9 @@ class GenerateSSHKeys(Deployment):
 
             # generate key pair
             subprocess.call(["ssh-keygen", "-q", "-t", "rsa", "-N", "", "-C", hostname, "-f", privateKeyFileName])
-            client.upload(privateKeyFileName, "/root/.ssh/id_rsa")
-            client.chmod("/root/.ssh/id_rsa", 0600)
-            client.upload(publicKeyFileName, "/root/.ssh/id_rsa.pub")
+            client.upload(privateKeyFileName, privateKeyPath)
+            client.chmod(privateKeyPath, 0600)
+            client.upload(publicKeyFileName, publicKeyPath)
 
             os.remove(privateKeyFileName)
             os.remove(publicKeyFileName)

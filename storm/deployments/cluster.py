@@ -2,6 +2,7 @@
 Cluster deployments
 """
 import logging
+import os
 
 from c4.utils.logutil import ClassLogger
 
@@ -54,29 +55,36 @@ class AddNodesToEtcHosts(ClusterDeployment):
 class SetupPasswordlessSSH(ClusterDeployment):
     """
     Deploys passwordless SSH between nodes
+
+    :param user: user
+    :type user: str
     """
-    def __init__(self):
+    def __init__(self, user=None):
         super(SetupPasswordlessSSH, self).__init__()
+        self.user = user
+        self.userHome = os.path.join("/home", user) if user else "/root"
 
     def run(self, nodes, clients):
         hostKeys = {}
         sshKeys = []
 
         self.log.info("Getting ssh keys from hosts in the cluster")
-        deploy([GenerateHostSSHKeys(), GenerateSSHKeys()], nodes)
+        deploy([GenerateHostSSHKeys(), GenerateSSHKeys(user=self.user)], nodes)
+        publicKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa.pub")
         for node in nodes:
             try:
                 hostKeys[node.name] = clients[node.name].read("/etc/ssh/ssh_host_rsa_key.pub")
-                sshKeys.append(clients[node.name].read('/root/.ssh/id_rsa.pub'))
+                sshKeys.append(clients[node.name].read(publicKeyPath))
             except Exception as exception:
                 raise DeploymentRunError(node, "Could not get ssh keys from '{0}': {1}".format(node.name, exception))
 
         self.log.info("Deploying passwordless SSH")
         deployments = []
         for host, key in hostKeys.items():
-            deployments.append(AddKnownHost(host, key))
+            deployments.append(AddKnownHost(host, key, user=self.user))
         for sshKey in sshKeys:
-            deployments.append(AddAuthorizedKey(sshKey))
+            log.fatal(sshKey)
+            deployments.append(AddAuthorizedKey(publicKey=sshKey, user=self.user))
         deploy(deployments, nodes)
 
         return nodes
