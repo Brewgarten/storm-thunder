@@ -39,9 +39,6 @@ class AddAuthorizedKey(Deployment):
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        log.fatal(self.userHome)
-        log.fatal(self.publicKey)
-
         client.mkdir(os.path.join(self.userHome, ".ssh"))
         authorizedKeysPath = os.path.join(self.userHome, ".ssh", "authorized_keys")
         if not client.isFile(authorizedKeysPath):
@@ -49,7 +46,6 @@ class AddAuthorizedKey(Deployment):
 
         # check if public key already authorized
         authorizedKeys = client.read(authorizedKeysPath)
-        log.fatal("'%s' '%s'", hostname, authorizedKeys)
         alreadyAuthorized = False
         for authorizedKey in authorizedKeys.splitlines():
             if authorizedKey.strip() == self.publicKey.strip():
@@ -57,7 +53,6 @@ class AddAuthorizedKey(Deployment):
                 alreadyAuthorized = True
                 break
 
-        log.fatal(alreadyAuthorized)
         if not alreadyAuthorized:
             client.put(authorizedKeysPath, contents=self.publicKey, mode="a", chmod=0600)
 
@@ -72,6 +67,8 @@ class AddKnownHost(Deployment):
     :type host: str
     :param hostPublicKey: host public key
     :type hostPublicKey: str
+    :param user: user
+    :type user: str
     """
     def __init__(self, host, hostPublicKey, user=None):
         super(AddKnownHost, self).__init__()

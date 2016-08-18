@@ -83,7 +83,6 @@ class SetupPasswordlessSSH(ClusterDeployment):
         for host, key in hostKeys.items():
             deployments.append(AddKnownHost(host, key, user=self.user))
         for sshKey in sshKeys:
-            log.fatal(sshKey)
             deployments.append(AddAuthorizedKey(publicKey=sshKey, user=self.user))
         deploy(deployments, nodes)
 
