@@ -21,6 +21,7 @@ setup(
     install_requires = [
         "apache-libcloud==1.1",
         "c4-utils>=0.2",
+        "hjson",
         "paramiko==2.0"
     ],
     keywords = "python storm cloud deployment",
