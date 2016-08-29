@@ -1,18 +1,78 @@
 """
 Software related deployments
 """
+import glob
 import logging
 import os
 import re
 
 from c4.utils.logutil import ClassLogger
 
-from ..thunder import (Deployment,
+from ..thunder import (ClusterDeployment,
+                       Deployment,
                        DeploymentRunError,
-                       RemoteTemporaryDirectory)
+                       RemoteTemporaryDirectory,
+                       deploy)
 
 
 log = logging.getLogger(__name__)
+
+@ClassLogger
+class ClusterDeployToDirectory(ClusterDeployment):
+    """
+    Deploy files to the specified directory and return the full
+    remote paths of the files.
+
+    This uses a fan-out approach so that the cost of uploading only occurs once
+
+    :param directory: remote directory
+    :type directory: str
+    :param fileNames: file names
+    :type fileNames: [str]
+    """
+    def __init__(self, directory, *fileNames):
+        super(ClusterDeployToDirectory, self).__init__()
+        self.directory = directory
+        self.fileNames = []
+        for fileName in fileNames:
+            potentialFileNames = glob.glob(fileName)
+            if not potentialFileNames:
+                raise ValueError("'{0}' is an invalid path".format(fileName))
+            for potentialFileName in potentialFileNames:
+                if not os.path.exists(potentialFileName):
+                    raise ValueError("'{0}' is an invalid path".format(potentialFileName))
+                self.fileNames.append(potentialFileName)
+        self.remoteFileNames = []
+
+    def run(self, nodes, clients):
+        """
+        Run cluster-wide deployment on speficied nodes
+
+        :param nodes: the nodes
+        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        :param clients: node name to connected SSH client mapping
+        :type clients: dict
+        :returns: nodes
+        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        """
+        # TODO: check if we need natural sort
+        nodes = sorted(nodes, key=lambda node: node.name)
+
+        # client for the first node
+        node = nodes[0]
+        client = clients[node.name]
+
+        UploadToDirectory(self.directory, *self.fileNames).run(node, client)
+
+        deployments = []
+        for fileName in self.fileNames:
+            # TODO: make this more robust
+            remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
+            deployments.append(RemoteCopy(node.name, self.directory, remoteFileName))
+
+        deploy(deployments, nodes[1:])
+
+        return nodes
 
 @ClassLogger
 class DeployPythonPackages(Deployment):
@@ -122,6 +182,52 @@ class InstallRPMPackages(Deployment):
         return node
 
 @ClassLogger
+class RemoteCopy(Deployment):
+    """
+    Copy files from the specified node into the directory onto the current node
+
+    :param ip: ip address
+    :type ip: str
+    :param directory: remote directory
+    :type directory: str
+    :param fileNames: file names
+    :type fileNames: [str]
+    """
+    def __init__(self, nodeName, directory, *fileNames):
+        super(RemoteCopy, self).__init__()
+        # TODO: maybe use node instead
+        self.nodeName = nodeName
+        self.directory = directory
+        self.fileNames = fileNames
+
+    def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
+        if not self.fileNames:
+            return
+
+        client.mkdir(self.directory)
+        for fileName in self.fileNames:
+            remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
+            if client.isFile(remoteFileName):
+                self.log.debug("'%s' already uploaded", fileName)
+            else:
+                stdout, stderr, status = client.run("scp -pr root@{nodeName}:{source} {destination}".format(
+                    nodeName=self.nodeName,
+                    source=fileName,
+                    destination=remoteFileName))
+                if status != 0:
+                    raise DeploymentRunError(node, "Could not remote copy '{0}' to {1}", status=status, stdout=stdout, stderr=stderr)
+
+@ClassLogger
 class UpdateLocalRPMPackages(Deployment):
     """
     Upload rpms to update existing ones on the node.
@@ -214,20 +320,32 @@ class UploadToDirectory(Deployment):
     :type fileNames: [str]
     """
     def __init__(self, directory, *fileNames):
+        super(UploadToDirectory, self).__init__()
         self.directory = directory
-        self.fileNames = fileNames
+        self.fileNames = []
+        for fileName in fileNames:
+            potentialFileNames = glob.glob(fileName)
+            if not potentialFileNames:
+                raise ValueError("'{0}' is an invalid path".format(fileName))
+            for potentialFileName in potentialFileNames:
+                if not os.path.exists(potentialFileName):
+                    raise ValueError("'{0}' is an invalid path".format(potentialFileName))
+                self.fileNames.append(potentialFileName)
         self.remoteFileNames = []
 
     def run(self, node, client):
         if not self.fileNames:
             return node
+        client.mkdir(self.directory)
         self.remoteFileNames = []
         for fileName in self.fileNames:
             remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
-            if not client.upload(fileName.strip(), remoteFileName):
-                raise DeploymentRunError(node, "Could not upload '{0}'".format(fileName))
-            self.remoteFileNames.append(remoteFileName)
-
+            if client.isFile(remoteFileName):
+                self.log.debug("'%s' already uploaded", fileName)
+            else:
+                if not client.upload(fileName.strip(), remoteFileName):
+                    raise DeploymentRunError(node, "Could not upload '{0}'".format(fileName))
+                self.remoteFileNames.append(remoteFileName)
         return node
 
 def isRPMPackageInstalled(client, *rpms):
