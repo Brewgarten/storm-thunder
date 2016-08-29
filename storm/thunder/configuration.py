@@ -148,6 +148,7 @@ class DeploymentInfos(HjsonSerializable, JSONSerializable):
                         deployments.append(deploymentInfo)
                 except Exception as exception:
                     log.error("Could not load deployment '%s' because '%s'", deploymentName, exception)
+                    log.exception(exception)
             return cls(deployments)
         return hjsonDict
 
@@ -198,12 +199,37 @@ class DeploymentInfo(HjsonSerializable, JSONSerializable):
         module = __import__(moduleName, fromlist=[className])
         deploymentClass = getattr(module, className)
 
+        # TODO: move this into new constructorWithVariableArguments utility function
+        handlerArgSpec = inspect.getargspec(deploymentClass.__init__)
+        # retrieve variable argument map for the handler
         handlerArgumentMap, _, leftOverKeywords = getVariableArguments(deploymentClass.__init__, **parameters)
 
-        variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
-        if variableArgument:
-            variableArgumentValue = leftOverKeywords.pop(variableArgument)
-            deployment = deploymentClass(*variableArgumentValue, **handlerArgumentMap)
+        # check for missing required arguments
+        missingArguments = [
+            key
+            for key, value in handlerArgumentMap.items()
+            if value == "_notset_"
+        ]
+        if missingArguments:
+            for missingArgument in missingArguments:
+                raise ValueError("'{name}' is missing required argument '{argument}'".format(
+                    name=deploymentClassName, argument=missingArgument))
+
+        # add optional keyword arguments
+        if handlerArgSpec.keywords:
+            handlerArgumentMap.update(leftOverKeywords)
+
+        # add optional variable arguments
+        if handlerArgSpec.varargs:
+            # retrieve argument values from the map
+            handlerArgumentValues = [
+                handlerArgumentMap.pop(argumentName)
+                for argumentName in handlerArgSpec.args[1:]
+            ]
+            # combine argument values with varargs
+            varargsValue = leftOverKeywords.pop(handlerArgSpec.varargs)
+            combinedArguments = handlerArgumentValues + list(varargsValue)
+            deployment = deploymentClass(*combinedArguments, **handlerArgumentMap)
         else:
             deployment = deploymentClass(**handlerArgumentMap)
 
