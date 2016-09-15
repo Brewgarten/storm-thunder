@@ -64,6 +64,59 @@ class AddPathsToBashProfile(Deployment):
         if status != 0:
             raise DeploymentRunError(node, "Unable to source {0} file".format(fullProfilePath), status, stdout, stderr)
 
+@ClassLogger
+class SetKernelParameters(Deployment):
+    """
+    Set kernel parameters
+    """
+    def __init__(self, **parameters):
+        super(SetKernelParameters, self).__init__()
+        self.parameters = parameters
+
+    def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
+        modified = False
+        config = client.read("/etc/sysctl.conf")
+        for name, value in sorted(self.parameters.items()):
+
+            match = re.search(r"{name}\s*=\s*(?P<value>.*)".format(name=name), config, re.MULTILINE)
+            if match:
+                if match.group("value") == str(value):
+                    self.log.debug("sysctl.conf already contains value '%s' for parameter '%s'", match.group("value"), name)
+                else:
+                    self.log.debug("Setting value '%s' for parameter '%s'", value, name)
+                    config = re.sub(
+                        r"{name}\s*=\s*(?P<value>.*)".format(name=name),
+                        "{name} = {value}".format(name=name, value=value),
+                        config,
+                        flags=re.MULTILINE)
+                    modified = True
+            else:
+                self.log.debug("Adding value '%s' for parameter '%s' to sysctl.conf", value, name)
+                config = "\n".join([config, "{name} = {value}".format(name=name, value=value)])
+                modified = True
+
+        if modified:
+            client.put("/etc/sysctl.conf", contents=config)
+            stdout, stderr, status = client.run("sysctl -p")
+            if status != 0:
+                unknownParameters = re.findall(r"error: \"([^\"]+)\" is an unknown key", stderr, re.MULTILINE)
+                if unknownParameters:
+                    self.log.warn("Found the following unknown parameters '%s' in sysctl.conf during reload", ",".join(unknownParameters))
+                else:
+                    raise DeploymentRunError(node, "Could reload the kernel parameters", status, stdout, stderr)
+
+        return node
+
 def getKernelRelease(client):
     """
     Get kernel release as a string.
