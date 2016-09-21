@@ -209,6 +209,25 @@ class AdvancedSSHClient(ParamikoSSHClient):
         finally:
             sftp.close()
 
+    def exists(self, path):
+        """
+        Check if the specified path exists
+
+        :param path: path
+        :type path: str
+        :returns: bool
+        """
+        extra = {'_path': path}
+        self.logger.debug('exists', extra=extra)
+        sftp = self.client.open_sftp()
+        try:
+            sftp.stat(path)
+        except:
+            return False
+        finally:
+            sftp.close()
+        return True
+
     def isFile(self, path):
         """
         Check if the file specified by the path is a file
