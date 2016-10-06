@@ -123,12 +123,14 @@ class InstallLocalRPMPackages(Deployment):
     :type rpms: [str]
     """
     def __init__(self, *rpms):
+        super(InstallLocalRPMPackages, self).__init__()
         self.rpms = rpms
 
     def run(self, node, client):
         # generate package to file mapping
         packages = {
-            os.path.basename(fileName).strip(".rpm"): fileName
+            # remove rpm extension
+            os.path.splitext(os.path.basename(fileName))[0] if fileName.endswith(".rpm") else os.path.basename(fileName): fileName
             for fileName in self.rpms
         }
         installedRPMInfo = isRPMPackageInstalled(client, *packages.keys())
@@ -158,6 +160,7 @@ class InstallRPMPackages(Deployment):
     :type rpms: [str]
     """
     def __init__(self, *rpms):
+        super(InstallRPMPackages, self).__init__()
         self.rpms = rpms
 
     def run(self, node, client):
@@ -237,6 +240,7 @@ class UpdateLocalRPMPackages(Deployment):
     :type rpms: [str]
     """
     def __init__(self, *rpms):
+        super(UpdateLocalRPMPackages, self).__init__()
         self.rpms = rpms
 
     def run(self, node, client):
@@ -256,6 +260,7 @@ class UpdateRPMPackages(Deployment):
     :type rpms: [str]
     """
     def __init__(self, *rpms):
+        super(UpdateRPMPackages, self).__init__()
         self.rpms = rpms
 
     def run(self, node, client):
@@ -363,7 +368,8 @@ def isRPMPackageInstalled(client, *rpms):
     if not rpms:
         return {}
     packages = [
-        os.path.basename(rpm).strip(".rpm")
+        # remove rpm extension
+        os.path.splitext(os.path.basename(rpm))[0] if rpm.endswith(".rpm") else os.path.basename(rpm)
         for rpm in rpms
     ]
     stdout, _, _ = client.run("rpm -q {0}".format(" ".join(packages)))
