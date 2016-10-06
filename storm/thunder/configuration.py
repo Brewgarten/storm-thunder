@@ -45,14 +45,13 @@ without parameters
     ]
 
 """
-import inspect
 import logging
 import re
 
 from c4.utils.hjsonutil import HjsonSerializable
 from c4.utils.jsonutil import JSONSerializable
 from c4.utils.logutil import ClassLogger
-from c4.utils.util import getVariableArguments
+from c4.utils.util import initWithVariableArguments
 
 
 log = logging.getLogger(__name__)
@@ -198,43 +197,7 @@ class DeploymentInfo(HjsonSerializable, JSONSerializable):
         # load class from module
         module = __import__(moduleName, fromlist=[className])
         deploymentClass = getattr(module, className)
-
-        # TODO: move this into new constructorWithVariableArguments utility function
-        handlerArgSpec = inspect.getargspec(deploymentClass.__init__)
-        # retrieve variable argument map for the handler
-        handlerArgumentMap, _, leftOverKeywords = getVariableArguments(deploymentClass.__init__, **parameters)
-
-        # check for missing required arguments
-        missingArguments = [
-            key
-            for key, value in handlerArgumentMap.items()
-            if value == "_notset_"
-        ]
-        if missingArguments:
-            for missingArgument in missingArguments:
-                raise ValueError("'{name}' is missing required argument '{argument}'".format(
-                    name=deploymentClassName, argument=missingArgument))
-
-        # add optional keyword arguments
-        if handlerArgSpec.keywords:
-            handlerArgumentMap.update(leftOverKeywords)
-
-        # add optional variable arguments
-        if handlerArgSpec.varargs:
-            # retrieve argument values from the map
-            handlerArgumentValues = [
-                handlerArgumentMap.pop(argumentName)
-                for argumentName in handlerArgSpec.args[1:]
-            ]
-            # combine argument values with varargs
-            varargsValue = leftOverKeywords.pop(handlerArgSpec.varargs)
-            combinedArguments = handlerArgumentValues + list(varargsValue)
-            deployment = deploymentClass(*combinedArguments, **handlerArgumentMap)
-        else:
-            deployment = deploymentClass(**handlerArgumentMap)
-
-        for key, value in leftOverKeywords.items():
-            cls.log.warn("Key '%s' with value '%s' is not a valid parameter for '%s'", key, value, deploymentClassName)
+        deployment = initWithVariableArguments(deploymentClass, **parameters)
 
         if nodes:
             return cls(deployment, *nodes)

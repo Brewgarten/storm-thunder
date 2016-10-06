@@ -188,14 +188,15 @@ class RemoteCopy(Deployment):
 
     :param ip: ip address
     :type ip: str
-    :param directory: remote directory
+    :param nodeName: name of the node from which to copy
+    :type nodeName: str
+    :param directory: remote directory to copy into
     :type directory: str
-    :param fileNames: file names
+    :param fileNames: file names to be copied
     :type fileNames: [str]
     """
     def __init__(self, nodeName, directory, *fileNames):
         super(RemoteCopy, self).__init__()
-        # TODO: maybe use node instead
         self.nodeName = nodeName
         self.directory = directory
         self.fileNames = fileNames

@@ -9,7 +9,8 @@ import os
 import re
 import sys
 
-from c4.utils.util import getVariableArguments
+from c4.utils.util import (getVariableArguments,
+                           initWithVariableArguments)
 from storm.thunder.base import (NodesInfoMap,
                                 deploy,
                                 getDeployments,
@@ -75,7 +76,7 @@ def getArgumentParser():
                     if re.match(r"\[.+\]", documentation["parameters"][name]["type"]):
                         argumentProperties["action"] = "append"
             else:
-                log.warn("'%s' documentation is missing information for parameter '%s'", deployment.__name__, name)
+                log.warn("'%s' documentation is missing information for parameter '%s'", deploymentName, name)
 
             if value == "_notset_":
                 if argumentProperties.get("action") == "append":
@@ -292,14 +293,7 @@ def main():
         # load class from module
         module = __import__(moduleName, fromlist=[className])
         deploymentClass = getattr(module, className)
-
-        # create deployment instance
-        variableArgument = inspect.getargspec(deploymentClass.__init__).varargs
-        if variableArgument:
-            variableArgumentValue = parameters.pop(variableArgument)
-            deployment = deploymentClass(*variableArgumentValue, **parameters)
-        else:
-            deployment = deploymentClass(**parameters)
+        deployment = initWithVariableArguments(deploymentClass, **parameters)
 
         # TODO: add argument parser option for results file
         # TODO: add argument parser option for timeout
