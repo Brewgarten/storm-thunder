@@ -412,7 +412,7 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
 
     # TODO: determine parallism or make configurable through option
     # TODO: determine if we want to switch to regular process pool or keep using threads while assuming most of the processing is done on the nodes
-    pool = ThreadPool(processes=4)
+    pool = ThreadPool(processes=20)
 
     def connectClient(node):
         """
