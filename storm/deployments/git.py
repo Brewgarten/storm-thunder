@@ -91,9 +91,10 @@ class Deploy(Deployment):
             stdout, stderr, status = client.run(
                 "cd {directory} && git remote set-url origin {url}".format(
                     directory=baseDirectory,
-                    url=url
+                    url=self.url
                 )
             )
-            raise DeploymentRunError(node, "Could not reset repository remote url to one without credentials", status, stdout, stderr)
+            if status != 0:
+                raise DeploymentRunError(node, "Could not reset repository remote url to one without credentials", status, stdout, stderr)
 
         return node
