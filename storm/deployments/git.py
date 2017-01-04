@@ -2,12 +2,15 @@
 Git related deployments
 """
 import logging
-import re
 import os
+import re
 
 from c4.utils.logutil import ClassLogger
+
 from ..thunder import (Deployment,
-                       DeploymentRunError)
+                       DeploymentRunError,
+                       RemoteTemporaryDirectory)
+from .software import (InstallRPMPackages, isRPMPackageInstalled)
 
 
 log = logging.getLogger(__name__)
@@ -96,5 +99,139 @@ class Deploy(Deployment):
             )
             if status != 0:
                 raise DeploymentRunError(node, "Could not reset repository remote url to one without credentials", status, stdout, stderr)
+
+        return node
+
+@ClassLogger
+class Install(Deployment):
+    """
+    Install specified repository
+
+    :param includeDocumentation: include documentation (doc, html, info)
+    :type includeDocumentation: bool
+    :param includeManPages: include man pages
+    :type includeManPages: bool
+    :param version: version
+    :type version: str
+    """
+    def __init__(self, includeDocumentation=False, includeManPages=True, version="2.11.0"):
+        super(Install, self).__init__()
+        self.includeDocumentation = includeDocumentation
+        self.includeManPages = includeManPages
+        self.version = version
+
+    def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
+        versionParts = self.version.split(".")
+        stdout, _, status = client.run("git --version")
+        if status == 0:
+            installedVersion = re.search(r"(?P<version>\d+\.\d+.+)", stdout).group("version")
+            installedVersionParts = installedVersion.split(".")
+
+            if installedVersionParts == versionParts:
+                self.log.info("Git version '%s' already installed", installedVersion)
+                return node
+
+            if installedVersionParts > versionParts:
+                self.log.info("Newer git version '%s' already installed", installedVersion)
+                return node
+
+            gitPackageName = "git-{version}".format(version=installedVersion)
+            if any(isRPMPackageInstalled(client, gitPackageName).values()):
+                raise DeploymentRunError(node, "Found existing git rpm package. Please uninstall first")
+
+        self.log.debug("Installing prerequisite packages")
+        prerequisites = [
+            "expat-devel",
+            "gettext-devel",
+            "curl-devel",
+            "perl-devel",
+            "zlib-devel",
+            "openssl-devel"
+        ]
+        InstallRPMPackages(*prerequisites).run(node, client)
+
+        if self.includeDocumentation:
+            self.log.debug("Installing documentation prerequisite packages")
+            documenationPrerequisites = [
+                "asciidoc",
+                "docbook2X",
+                "xmlto"
+            ]
+            InstallRPMPackages(*documenationPrerequisites).run(node, client)
+
+            stdout, stderr, status = client.run("ln -sf /usr/bin/db2x_docbook2texi /usr/bin/docbook2x-texi")
+            if status != 0:
+                raise DeploymentRunError(node, "Could not create symlink", status=status, stdout=stdout, stderr=stderr)
+
+        with RemoteTemporaryDirectory(client) as tmpDirectory:
+
+            stdout, stderr, status = client.run(
+                "wget --directory-prefix {directory} https://www.kernel.org/pub/software/scm/git/git-{version}.tar.gz".format(
+                    directory=tmpDirectory,
+                    version=self.version
+                )
+            )
+            if status != 0:
+                raise DeploymentRunError(node, "Could not download version '{version}'".format(version=self.version), status=status, stdout=stdout, stderr=stderr)
+
+            stdout, stderr, status = client.run("cd {directory} && tar -zxf *.tar.gz --strip 1".format(directory=tmpDirectory))
+            if status != 0:
+                raise DeploymentRunError(node, "Could not untar build", status=status, stdout=stdout, stderr=stderr)
+
+            stdout, stderr, status = client.run("cd {directory} && make configure".format(directory=tmpDirectory))
+            if status != 0:
+                raise DeploymentRunError(node, "Could not make configure", status=status, stdout=stdout, stderr=stderr)
+
+            stdout, stderr, status = client.run("cd {directory} && ./configure --prefix=/usr".format(directory=tmpDirectory))
+            if status != 0:
+                raise DeploymentRunError(node, "Could not configure", status=status, stdout=stdout, stderr=stderr)
+
+            if self.includeDocumentation:
+                buildCommand = "cd {directory} && make all doc man info".format(directory=tmpDirectory)
+            else:
+                buildCommand = "cd {directory} && make all".format(directory=tmpDirectory)
+            stdout, stderr, status = client.run(buildCommand)
+            if status != 0:
+                if re.search(r"docbook2x-texi: command not found", stderr, re.MULTILINE):
+                    self.log.warn("Could not build all of the documentation")
+                else:
+                    raise DeploymentRunError(node, "Could not build git", status=status, stdout=stdout, stderr=stderr)
+
+            if self.includeDocumentation:
+                installCommand = "cd {directory} && make install install-doc install-man install-html install-info".format(directory=tmpDirectory)
+            else:
+                installCommand = "cd {directory} && make install".format(directory=tmpDirectory)
+            stdout, stderr, status = client.run(installCommand)
+            if status != 0:
+                raise DeploymentRunError(node, "Could not install git", status=status, stdout=stdout, stderr=stderr)
+
+            # man pages are part of the documentation so only install if specifically requested and not already installed
+            if self.includeManPages and not self.includeDocumentation:
+                stdout, stderr, status = client.run(
+                    "wget --directory-prefix {directory} https://www.kernel.org/pub/software/scm/git/git-manpages-{version}.tar.gz".format(
+                        directory=tmpDirectory,
+                        version=self.version
+                    )
+                )
+                if status != 0:
+                    raise DeploymentRunError(node, "Could not download man pages for '{version}'".format(version=self.version), status=status, stdout=stdout, stderr=stderr)
+
+                stdout, stderr, status = client.run(
+                    "cd {directory} && tar -zxf git-manpages-*.tar.gz -C /usr/local/share/man".format(
+                        directory=tmpDirectory
+                    )
+                )
+                if status != 0:
+                    raise DeploymentRunError(node, "Could not install man pages for '{version}'".format(version=self.version), status=status, stdout=stdout, stderr=stderr)
 
         return node

@@ -232,6 +232,45 @@ class RemoteCopy(Deployment):
                     raise DeploymentRunError(node, "Could not remote copy '{0}' to {1}", status=status, stdout=stdout, stderr=stderr)
 
 @ClassLogger
+class RemoveRPMPackages(Deployment):
+    """
+    Remove rpm
+
+    :param rpms: rpm package names or rpm file names
+    :type rpms: [str]
+    """
+    def __init__(self, *rpms):
+        super(RemoveRPMPackages, self).__init__()
+        self.rpms = rpms
+
+    def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
+        if not self.rpms:
+            return node
+        for attempt in range(3):
+            stdout, stderr, status = client.run("yum erase --assumeyes {0}".format(" ".join(self.rpms)))
+            if status != 0 and "[Errno 256] No more mirrors to try." in stderr:
+                self.log.debug("Encountered yum cache mirror problem in attempt %d", attempt+1)
+                client.run("yum clean all")
+            else:
+                break
+        if status != 0:
+            raise DeploymentRunError(node, "Could not yum erase '{0}' packages.".format(",".join(self.rpms)), status, stdout, stderr)
+        for match in re.finditer(r"No Match for argument: (?P<name>.*)", stderr, re.MULTILINE):
+            self.log.debug("Package '%s' not installed", match.group("name"))
+
+        return node
+
+@ClassLogger
 class UpdateLocalRPMPackages(Deployment):
     """
     Upload rpms to update existing ones on the node.
