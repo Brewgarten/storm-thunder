@@ -59,10 +59,10 @@ class SetupPasswordlessSSH(ClusterDeployment):
     :param user: user
     :type user: str
     """
-    def __init__(self, user=None):
+    def __init__(self, user="root"):
         super(SetupPasswordlessSSH, self).__init__()
         self.user = user
-        self.userHome = os.path.join("/home", user) if user else "/root"
+        self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
     def run(self, nodes, clients):
         hostKeys = {}

@@ -26,21 +26,33 @@ class AddAuthorizedKey(Deployment):
     :param user: user
     :type user: str
     """
-    def __init__(self, publicKey=None, publicKeyPath="~/.ssh/id_rsa.pub", user=None):
+    def __init__(self, publicKey=None, publicKeyPath="~/.ssh/id_rsa.pub", user="root"):
         super(AddAuthorizedKey, self).__init__()
         if publicKey:
             self.publicKey = publicKey
         else:
             with open(os.path.expanduser(publicKeyPath)) as publicKeyFile:
                 self.publicKey = publicKeyFile.read()
-        self.userHome = os.path.join("/home", user) if user else "/root"
+        self.user = user
+        self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
     def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir(os.path.join(self.userHome, ".ssh"))
-        authorizedKeysPath = os.path.join(self.userHome, ".ssh", "authorized_keys")
+        sshDirectory = os.path.join(self.userHome, ".ssh")
+        client.mkdir(sshDirectory)
+        authorizedKeysPath = os.path.join(sshDirectory, "authorized_keys")
         if not client.isFile(authorizedKeysPath):
             client.touch(authorizedKeysPath)
 
@@ -56,6 +68,10 @@ class AddAuthorizedKey(Deployment):
         if not alreadyAuthorized:
             client.put(authorizedKeysPath, contents=self.publicKey, mode="a", chmod=0600)
 
+        # make sure that ssh directory has correct owner
+        if self.user != "root":
+            client.run("chown -R {user}:{user} {sshDirectory}".format(user=self.user, sshDirectory=sshDirectory))
+
         return node
 
 @ClassLogger
@@ -70,18 +86,30 @@ class AddKnownHost(Deployment):
     :param user: user
     :type user: str
     """
-    def __init__(self, host, hostPublicKey, user=None):
+    def __init__(self, host, hostPublicKey, user="root"):
         super(AddKnownHost, self).__init__()
         self.host = host
         self.hostPublicKey = hostPublicKey
-        self.userHome = os.path.join("/home", user) if user else "/root"
+        self.user = user
+        self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
     def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir(os.path.join(self.userHome, ".ssh"))
-        knownHostsPath = os.path.join(self.userHome, ".ssh", "known_hosts")
+        sshDirectory = os.path.join(self.userHome, ".ssh")
+        client.mkdir(sshDirectory)
+        knownHostsPath = os.path.join(sshDirectory, "known_hosts")
         if not client.isFile(knownHostsPath):
             client.touch(knownHostsPath)
 
@@ -98,9 +126,13 @@ class AddKnownHost(Deployment):
         if not alreadyKnown:
             knownHostEntry = "{0} {1}".format(self.host, self.hostPublicKey)
             client.put(knownHostsPath, contents=knownHostEntry, mode="a")
-            if '.' in self.host:
-                knownShortHostEntry = "{0} {1}".format(self.host[0:self.host.index('.')], self.hostPublicKey)
+            if "." in self.host:
+                knownShortHostEntry = "{0} {1}".format(self.host[0:self.host.index(".")], self.hostPublicKey)
                 client.put(knownHostsPath, contents=knownShortHostEntry, mode="a")
+
+        # make sure that ssh directory has correct owner
+        if self.user != "root":
+            client.run("chown -R {user}:{user} {sshDirectory}".format(user=self.user, sshDirectory=sshDirectory))
 
         return node
 
@@ -114,13 +146,22 @@ class AddToEtcHosts(Deployment):
     :param hostnames: hostnames
     :type hostnames: [str]
     """
-
     def __init__(self, ip, hostnames):
         super(AddToEtcHosts, self).__init__()
         self.hostnames = hostnames
         self.ip = ip
 
     def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         etcHosts = EtcHosts.fromString(client.read("/etc/hosts"))
         for hostname in self.hostnames:
             etcHosts.add(hostname, self.ip, replace=True)
@@ -140,6 +181,16 @@ class GenerateHostSSHKeys(Deployment):
         super(GenerateHostSSHKeys, self).__init__()
 
     def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
@@ -175,17 +226,29 @@ class GenerateSSHKeys(Deployment):
     :param user: user
     :type user: str
     """
-    def __init__(self, user=None):
+    def __init__(self, user="root"):
         super(GenerateSSHKeys, self).__init__()
-        self.userHome = os.path.join("/home", user) if user else "/root"
+        self.user = user
+        self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
     def run(self, node, client):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         network = client.read("/etc/sysconfig/network")
         hostname = re.findall("HOSTNAME=(.+)", network)[0]
 
-        client.mkdir(os.path.join(self.userHome, ".ssh"))
-        privateKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa")
-        publicKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa.pub")
+        sshDirectory = os.path.join(self.userHome, ".ssh")
+        client.mkdir(sshDirectory)
+        privateKeyPath = os.path.join(sshDirectory, "id_rsa")
+        publicKeyPath = os.path.join(sshDirectory, "id_rsa.pub")
         if client.isFile(publicKeyPath):
             self.log.warn("'%s' already has existing key '%s'", hostname, publicKeyPath)
 
@@ -206,5 +269,9 @@ class GenerateSSHKeys(Deployment):
 
             os.remove(privateKeyFileName)
             os.remove(publicKeyFileName)
+
+        # make sure that ssh directory has correct owner
+        if self.user != "root":
+            client.run("chown -R {user}:{user} {sshDirectory}".format(user=self.user, sshDirectory=sshDirectory))
 
         return node
