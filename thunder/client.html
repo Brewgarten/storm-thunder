@@ -1,0 +1,478 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>SSH Client &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../index.html"/>
+        <link rel="up" title="Deployment Management" href="../thunder.html"/>
+        <link rel="next" title="Configuration" href="configuration.html"/>
+        <link rel="prev" title="Base Components" href="base.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../thunder.html">Deployment Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="base.html">Base Components</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">SSH Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manager.html">Manager</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../thunder.html">Deployment Management</a> &raquo;</li>
+      
+    <li>SSH Client</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/thunder/client.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-storm.thunder.client">
+<span id="ssh-client"></span><h1>SSH Client<a class="headerlink" href="#module-storm.thunder.client" title="Permalink to this headline">¶</a></h1>
+<p>Functionality to connect to and manage remote nodes</p>
+<dl class="class">
+<dt id="storm.thunder.client.AdvancedSSHClient">
+<em class="property">class </em><code class="descclassname">storm.thunder.client.</code><code class="descname">AdvancedSSHClient</code><span class="sig-paren">(</span><em>hostname</em>, <em>port=22</em>, <em>username='root'</em>, <em>password=None</em>, <em>key=None</em>, <em>key_files=None</em>, <em>key_material=None</em>, <em>timeout=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">libcloud.compute.ssh.ParamikoSSHClient</span></code></p>
+<p>Advanced SSH client that extends functionality of the base Paramiko client</p>
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.chmod">
+<code class="descname">chmod</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.chmod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.chmod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the mode (permissions) of a file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> (<em>str</em>) &#8211; file path</li>
+<li><strong>mode</strong> (<em>int</em>) &#8211; permissions</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.close">
+<code class="descname">close</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect</p>
+<p>This is a copy of the <cite>libcloud.compute.ssh.ParamikoSSHClient.connect</cite> method
+with support for proper order of public key and password lookups.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">connection successful</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.delete">
+<code class="descname">delete</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.download">
+<code class="descname">download</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download a remote file to the local host
+:param remotepath: remote file to copy
+:type remotepath: str
+:param localpath: destination path on the local host (including the filename). Default: current directory
+:type localpath: str
+:param callback: optional function that accepts the bytes transferred so far and the total bytes to be transferred
+:type form: func(int, int)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.exists">
+<code class="descname">exists</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the specified path exists</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) &#8211; path</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.isFile">
+<code class="descname">isFile</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.isFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.isFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the file specified by the path is a file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) &#8211; file path</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="storm.thunder.client.AdvancedSSHClient.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.mkdir">
+<code class="descname">mkdir</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.mkdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.mkdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create directory specified by the path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) &#8211; directory path</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.put">
+<code class="descname">put</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.put" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.read">
+<code class="descname">read</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read contents of the file specified by the path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) &#8211; file path</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the specified command</p>
+<p>This is a copy of the <cite>libcloud.compute.ssh.ParamikoSSHClient.run</cite> method
+with additional support for pseudo tty.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cmd</strong> (<em>str</em>) &#8211; command</li>
+<li><strong>timeout</strong> (<em>float</em>) &#8211; How long to wait (in seconds) for the command to
+finish (optional).</li>
+<li><strong>pseudoTTY</strong> (<em>bool</em>) &#8211; allocate a pseudo tty</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.touch">
+<code class="descname">touch</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.touch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.touch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Touch file specified by path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) &#8211; file path</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.upload">
+<code class="descname">upload</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upload local file specified by the path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filenames</strong> &#8211; file path(s). Multiple file paths can be specified as a list</li>
+<li><strong>remotefileOrDirname</strong> (<em>str</em>) &#8211; file path or dir name if multiple files are to be uploaded</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[ file path(s) that have been successfully uploaded ]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.client.AdvancedSSHClient.waitForReady">
+<code class="descname">waitForReady</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#AdvancedSSHClient.waitForReady"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.AdvancedSSHClient.waitForReady" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait until the node is ready, that is its network interface is up
+:param initialWait: initial wait time before polling can start
+:type initialWait: int
+:param pollfrequency: polling frequency
+:type pollfrequency: int
+:param timeout: timeout
+:type timeout: int
+:returns True if waiting for a ready state does not time out, else False
+:rtype boolean</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.client.MethodExcecutionLogger">
+<code class="descclassname">storm.thunder.client.</code><code class="descname">MethodExcecutionLogger</code><span class="sig-paren">(</span><em>cls</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#MethodExcecutionLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.MethodExcecutionLogger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class decorator that creates a per-class logger and logs method calls for an SSH client</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.client.RemoteTemporaryDirectory">
+<em class="property">class </em><code class="descclassname">storm.thunder.client.</code><code class="descname">RemoteTemporaryDirectory</code><span class="sig-paren">(</span><em>client</em>, <em>prefix='storm-thunder'</em>, <em>delete=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#RemoteTemporaryDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.RemoteTemporaryDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Create a remote temporary directory context using the specified client</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">RemoteTemporaryDirectory</span><span class="p">(</span><span class="o">&lt;</span><span class="n">client</span><span class="o">&gt;</span><span class="p">)</span> <span class="k">as</span> <span class="o">&lt;</span><span class="n">variable</span><span class="o">&gt;</span><span class="p">:</span>
+    <span class="o">&lt;</span><span class="n">body</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>client</strong> (<code class="xref py py-class docutils literal"><span class="pre">BaseSSHClient</span></code>) &#8211; connected ssh client</li>
+<li><strong>prefix</strong> (<em>str</em>) &#8211; directory prefix</li>
+<li><strong>delete</strong> (<em>bool</em>) &#8211; delete directory when done</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.client.getFormattedArgumentString">
+<code class="descclassname">storm.thunder.client.</code><code class="descname">getFormattedArgumentString</code><span class="sig-paren">(</span><em>arguments</em>, <em>keyValueArguments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/client.html#getFormattedArgumentString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.client.getFormattedArgumentString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a formatted version of the argument string such that it can be used
+in representations.</p>
+<p>E.g., action(&#8220;test&#8221;, key=&#8221;value&#8221;) instead of action([&#8220;test&#8221;],{&#8220;key&#8221;=&#8221;value&#8221;}</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>arguments</strong> (<em>[]</em>) &#8211; arguments</li>
+<li><strong>keyValueArguments</strong> (<em>dict</em>) &#8211; key value arguments</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">formatted argument string</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="configuration.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="base.html" class="btn btn-neutral" title="Base Components" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>storm.deployments.ssh &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thunder.html">Deployment Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>storm.deployments.ssh</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for storm.deployments.ssh</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">SSH related deployments</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">from</span> <span class="nn">c4.utils.logutil</span> <span class="k">import</span> <span class="n">ClassLogger</span>
+<span class="kn">from</span> <span class="nn">c4.utils.util</span> <span class="k">import</span> <span class="n">EtcHosts</span>
+
+<span class="kn">from</span> <span class="nn">..thunder</span> <span class="k">import</span> <span class="n">Deployment</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="AddAuthorizedKey"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddAuthorizedKey">[docs]</a><span class="k">class</span> <span class="nc">AddAuthorizedKey</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the specified public key to the ``authorized_keys`` of the guest</span>
+
+<span class="sd">    :param publicKey: public key</span>
+<span class="sd">    :type publicKey: str</span>
+<span class="sd">    :param publicKeyPath: public key path</span>
+<span class="sd">    :type publicKeyPath: str</span>
+<span class="sd">    :param user: user</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">publicKey</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">publicKeyPath</span><span class="o">=</span><span class="s2">&quot;~/.ssh/id_rsa.pub&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AddAuthorizedKey</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">publicKey</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">publicKey</span> <span class="o">=</span> <span class="n">publicKey</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">publicKeyPath</span><span class="p">))</span> <span class="k">as</span> <span class="n">publicKeyFile</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">publicKey</span> <span class="o">=</span> <span class="n">publicKeyFile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userHome</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/home&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span> <span class="k">if</span> <span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span> <span class="k">else</span> <span class="s2">&quot;/root&quot;</span>
+
+<div class="viewcode-block" id="AddAuthorizedKey.run"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddAuthorizedKey.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/sysconfig/network&quot;</span><span class="p">)</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;HOSTNAME=(.+)&quot;</span><span class="p">,</span> <span class="n">network</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">sshDirectory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userHome</span><span class="p">,</span> <span class="s2">&quot;.ssh&quot;</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">)</span>
+        <span class="n">authorizedKeysPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">,</span> <span class="s2">&quot;authorized_keys&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="n">authorizedKeysPath</span><span class="p">):</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="n">authorizedKeysPath</span><span class="p">)</span>
+
+        <span class="c1"># check if public key already authorized</span>
+        <span class="n">authorizedKeys</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">authorizedKeysPath</span><span class="p">)</span>
+        <span class="n">alreadyAuthorized</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">authorizedKey</span> <span class="ow">in</span> <span class="n">authorizedKeys</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">authorizedKey</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">publicKey</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already has authorized key &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">publicKey</span><span class="p">)</span>
+                <span class="n">alreadyAuthorized</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alreadyAuthorized</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">authorizedKeysPath</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">publicKey</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">chmod</span><span class="o">=</span><span class="mi">0600</span><span class="p">)</span>
+
+        <span class="c1"># make sure that ssh directory has correct owner</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;chown -R </span><span class="si">{user}</span><span class="s2">:</span><span class="si">{user}</span><span class="s2"> </span><span class="si">{sshDirectory}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">sshDirectory</span><span class="o">=</span><span class="n">sshDirectory</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="AddKnownHost"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddKnownHost">[docs]</a><span class="k">class</span> <span class="nc">AddKnownHost</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the specified host public key to the ``known_hosts`` of the guest</span>
+
+<span class="sd">    :param host: host name</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :param hostPublicKey: host public key</span>
+<span class="sd">    :type hostPublicKey: str</span>
+<span class="sd">    :param user: user</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">hostPublicKey</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AddKnownHost</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hostPublicKey</span> <span class="o">=</span> <span class="n">hostPublicKey</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userHome</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/home&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span> <span class="k">if</span> <span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span> <span class="k">else</span> <span class="s2">&quot;/root&quot;</span>
+
+<div class="viewcode-block" id="AddKnownHost.run"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddKnownHost.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/sysconfig/network&quot;</span><span class="p">)</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;HOSTNAME=(.+)&quot;</span><span class="p">,</span> <span class="n">network</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">sshDirectory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userHome</span><span class="p">,</span> <span class="s2">&quot;.ssh&quot;</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">)</span>
+        <span class="n">knownHostsPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">,</span> <span class="s2">&quot;known_hosts&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="n">knownHostsPath</span><span class="p">):</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">touch</span><span class="p">(</span><span class="n">knownHostsPath</span><span class="p">)</span>
+
+        <span class="c1"># check if host public key already known</span>
+        <span class="n">knownHosts</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">knownHostsPath</span><span class="p">)</span>
+        <span class="n">alreadyKnown</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">knownHost</span> <span class="ow">in</span> <span class="n">knownHosts</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">knownHost</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already knows host &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">knownHost</span><span class="p">)</span>
+                <span class="n">alreadyKnown</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alreadyKnown</span><span class="p">:</span>
+            <span class="n">knownHostEntry</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hostPublicKey</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">knownHostsPath</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="n">knownHostEntry</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">:</span>
+                <span class="n">knownShortHostEntry</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hostPublicKey</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">knownHostsPath</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="n">knownShortHostEntry</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
+
+        <span class="c1"># make sure that ssh directory has correct owner</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;chown -R </span><span class="si">{user}</span><span class="s2">:</span><span class="si">{user}</span><span class="s2"> </span><span class="si">{sshDirectory}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">sshDirectory</span><span class="o">=</span><span class="n">sshDirectory</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="AddToEtcHosts"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddToEtcHosts">[docs]</a><span class="k">class</span> <span class="nc">AddToEtcHosts</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add given host information to the /etc/hosts file</span>
+
+<span class="sd">    :param ip: ip address</span>
+<span class="sd">    :type ip: str</span>
+<span class="sd">    :param hostnames: hostnames</span>
+<span class="sd">    :type hostnames: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ip</span><span class="p">,</span> <span class="n">hostnames</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AddToEtcHosts</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hostnames</span> <span class="o">=</span> <span class="n">hostnames</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ip</span> <span class="o">=</span> <span class="n">ip</span>
+
+<div class="viewcode-block" id="AddToEtcHosts.run"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.AddToEtcHosts.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">etcHosts</span> <span class="o">=</span> <span class="n">EtcHosts</span><span class="o">.</span><span class="n">fromString</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/hosts&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">hostname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hostnames</span><span class="p">:</span>
+            <span class="n">etcHosts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ip</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">etcHosts</span><span class="o">.</span><span class="n">toString</span><span class="p">()</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;/etc/hosts&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="n">entry</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="GenerateHostSSHKeys"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.GenerateHostSSHKeys">[docs]</a><span class="k">class</span> <span class="nc">GenerateHostSSHKeys</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate Host SSH keys on the guest</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GenerateHostSSHKeys</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GenerateHostSSHKeys.run"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.GenerateHostSSHKeys.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/sysconfig/network&quot;</span><span class="p">)</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;HOSTNAME=(.+)&quot;</span><span class="p">,</span> <span class="n">network</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s2">&quot;/etc/ssh/&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="s2">&quot;/etc/ssh/ssh_host_rsa_key.pub&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already has existing key &#39;/etc/ssh/ssh_host_rsa_key.pub&#39;&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># check for existing key pair</span>
+            <span class="n">privateKeyFileName</span> <span class="o">=</span> <span class="s2">&quot;/tmp/</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+            <span class="n">publicKeyFileName</span> <span class="o">=</span> <span class="s2">&quot;/tmp/</span><span class="si">{0}</span><span class="s2">.pub&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">)</span>
+
+            <span class="c1"># generate key pair</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;ssh-keygen&quot;</span><span class="p">,</span> <span class="s2">&quot;-q&quot;</span><span class="p">,</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;rsa&quot;</span><span class="p">,</span> <span class="s2">&quot;-N&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;-C&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="n">privateKeyFileName</span><span class="p">])</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">,</span> <span class="s2">&quot;/etc/ssh/ssh_host_rsa_key&quot;</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="s2">&quot;/etc/ssh/ssh_host_rsa_key&quot;</span><span class="p">,</span> <span class="mi">0600</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">,</span> <span class="s2">&quot;/etc/ssh/ssh_host_rsa_key.pub&quot;</span><span class="p">)</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="GenerateSSHKeys"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.GenerateSSHKeys">[docs]</a><span class="k">class</span> <span class="nc">GenerateSSHKeys</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate SSH keys on the guest</span>
+
+<span class="sd">    :param user: user</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GenerateSSHKeys</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userHome</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/home&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span> <span class="k">if</span> <span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span> <span class="k">else</span> <span class="s2">&quot;/root&quot;</span>
+
+<div class="viewcode-block" id="GenerateSSHKeys.run"><a class="viewcode-back" href="../../../deployments/ssh.html#storm.deployments.ssh.GenerateSSHKeys.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/sysconfig/network&quot;</span><span class="p">)</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;HOSTNAME=(.+)&quot;</span><span class="p">,</span> <span class="n">network</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">sshDirectory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userHome</span><span class="p">,</span> <span class="s2">&quot;.ssh&quot;</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">)</span>
+        <span class="n">privateKeyPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">,</span> <span class="s2">&quot;id_rsa&quot;</span><span class="p">)</span>
+        <span class="n">publicKeyPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sshDirectory</span><span class="p">,</span> <span class="s2">&quot;id_rsa.pub&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="n">publicKeyPath</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already has existing key &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="n">publicKeyPath</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># check for existing key pair</span>
+            <span class="n">privateKeyFileName</span> <span class="o">=</span> <span class="s2">&quot;/tmp/</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+            <span class="n">publicKeyFileName</span> <span class="o">=</span> <span class="s2">&quot;/tmp/</span><span class="si">{0}</span><span class="s2">.pub&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">)</span>
+
+            <span class="c1"># generate key pair</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;ssh-keygen&quot;</span><span class="p">,</span> <span class="s2">&quot;-q&quot;</span><span class="p">,</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;rsa&quot;</span><span class="p">,</span> <span class="s2">&quot;-N&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;-C&quot;</span><span class="p">,</span> <span class="n">hostname</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="n">privateKeyFileName</span><span class="p">])</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">,</span> <span class="n">privateKeyPath</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">privateKeyPath</span><span class="p">,</span> <span class="mi">0600</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">,</span> <span class="n">publicKeyPath</span><span class="p">)</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">privateKeyFileName</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">publicKeyFileName</span><span class="p">)</span>
+
+        <span class="c1"># make sure that ssh directory has correct owner</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;chown -R </span><span class="si">{user}</span><span class="s2">:</span><span class="si">{user}</span><span class="s2"> </span><span class="si">{sshDirectory}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">sshDirectory</span><span class="o">=</span><span class="n">sshDirectory</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

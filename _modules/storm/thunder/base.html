@@ -1,0 +1,760 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>storm.thunder.base &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thunder.html">Deployment Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>storm.thunder.base</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for storm.thunder.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base components of deployments and deployment functionality</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">multiprocessing.dummy</span> <span class="k">import</span> <span class="n">Pool</span> <span class="k">as</span> <span class="n">ThreadPool</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">libcloud.compute.base</span>
+<span class="kn">import</span> <span class="nn">libcloud.compute.deployment</span>
+<span class="kn">import</span> <span class="nn">libcloud.compute.types</span>
+
+<span class="kn">from</span> <span class="nn">c4.utils.jsonutil</span> <span class="k">import</span> <span class="n">JSONSerializable</span>
+<span class="kn">from</span> <span class="nn">c4.utils.util</span> <span class="k">import</span> <span class="p">(</span><span class="n">getFullModuleName</span><span class="p">,</span> <span class="n">getModuleClasses</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.client</span> <span class="k">import</span> <span class="n">AdvancedSSHClient</span>
+
+
+<span class="n">PARAMETER_DOC_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">r&quot;\s*:(?P&lt;docType&gt;\w+)\s+(?P&lt;name&gt;\w+):\s+(?P&lt;description&gt;.+)&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseDeployment"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.BaseDeployment">[docs]</a><span class="k">class</span> <span class="nc">BaseDeployment</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base deployment class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">ABCMeta</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseDeployment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseNodeInfo"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.BaseNodeInfo">[docs]</a><span class="k">class</span> <span class="nc">BaseNodeInfo</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base node information object that contains name, public ip address and ssh password</span>
+<span class="sd">    in a manner that is compatible to :class:`~libcloud.compute.base.Node` objects</span>
+
+<span class="sd">    :param name: node name</span>
+<span class="sd">    :type name: str</span>
+<span class="sd">    :param publicIp: public ip of the node</span>
+<span class="sd">    :type publicIp: str</span>
+<span class="sd">    :param privateIp: private ip of the node</span>
+<span class="sd">    :type privateIp: str</span>
+<span class="sd">    :param password: SSH password</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">publicIp</span><span class="p">,</span> <span class="n">privateIp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">public_ips</span> <span class="o">=</span> <span class="p">[</span><span class="n">publicIp</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">private_ips</span> <span class="o">=</span> <span class="p">[</span><span class="n">privateIp</span><span class="p">]</span> <span class="k">if</span> <span class="n">privateIp</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">password</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span></div>
+
+<div class="viewcode-block" id="ClusterDeployment"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.ClusterDeployment">[docs]</a><span class="k">class</span> <span class="nc">ClusterDeployment</span><span class="p">(</span><span class="n">BaseDeployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base cluster deployment class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">ABCMeta</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="ClusterDeployment.run"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.ClusterDeployment.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">clients</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run cluster-wide deployment on speficied nodes</span>
+
+<span class="sd">        :param nodes: the nodes</span>
+<span class="sd">        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">        :param clients: node name to connected SSH client mapping</span>
+<span class="sd">        :type clients: dict</span>
+<span class="sd">        :returns: nodes</span>
+<span class="sd">        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+<span class="c1"># TODO: add JSONSerializable date to c4.utils</span>
+<div class="viewcode-block" id="Datetime"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.Datetime">[docs]</a><span class="k">class</span> <span class="nc">Datetime</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    JSON serializable datetime</span>
+
+<span class="sd">    :param value: datetime</span>
+<span class="sd">    :type value: :class:`datetime.datetime`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; does not match type &#39;</span><span class="si">{1}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Datetime.toJSONSerializable"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.Datetime.toJSONSerializable">[docs]</a>    <span class="k">def</span> <span class="nf">toJSONSerializable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">includeClassInfo</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert object to some JSON serializable Python object such as</span>
+<span class="sd">        str, list, dict, etc.</span>
+
+<span class="sd">        :param includeClassInfo: include class info in JSON, this</span>
+<span class="sd">            allows deserialization into the respective Python objects</span>
+<span class="sd">        :type includeClassInfo: bool</span>
+<span class="sd">        :returns: JSON serializable Python object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">formattedDateString</span> <span class="o">=</span> <span class="s2">&quot;{:%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S}.</span><span class="si">{:03d}</span><span class="s2">Z&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">microsecond</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">includeClassInfo</span><span class="p">:</span>
+            <span class="n">serializableDict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">formattedDateString</span><span class="p">}</span>
+            <span class="n">serializableDict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">classAttribute</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">typeAsString</span>
+            <span class="k">return</span> <span class="n">serializableDict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">formattedDateString</span></div></div>
+
+<div class="viewcode-block" id="Deployment"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.Deployment">[docs]</a><span class="k">class</span> <span class="nc">Deployment</span><span class="p">(</span><span class="n">BaseDeployment</span><span class="p">,</span> <span class="n">libcloud</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">deployment</span><span class="o">.</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base deployment class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">ABCMeta</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Deployment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="Deployment.run"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.Deployment.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+<div class="viewcode-block" id="DeploymentResult"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentResult">[docs]</a><span class="k">class</span> <span class="nc">DeploymentResult</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Result of a single deployment</span>
+
+<span class="sd">    :param deployment: deployment</span>
+<span class="sd">    :type deployment: :class:`~Deployment`</span>
+<span class="sd">    :param node: node</span>
+<span class="sd">    :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">    :param start: start time</span>
+<span class="sd">    :type start: :class:`datetime.datetime`</span>
+<span class="sd">    :param end: end time</span>
+<span class="sd">    :type end: :class:`datetime.datetime`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deployment</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">BaseDeployment</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; needs to be of type &#39;</span><span class="si">{1}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">BaseDeployment</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deployment</span> <span class="o">=</span> <span class="n">deployment</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="p">(</span><span class="n">libcloud</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">Node</span><span class="p">,</span> <span class="n">BaseNodeInfo</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; needs to be of type &#39;</span><span class="si">{1}</span><span class="s2">&#39; or </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">libcloud</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">Node</span><span class="p">,</span> <span class="n">BaseNodeInfo</span><span class="p">))</span>
+
+        <span class="c1"># convert to base node info and make sure not to include the password</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">BaseNodeInfo</span><span class="p">(</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">privateIp</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">private_ips</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">end</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DeploymentErrorResult"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentErrorResult">[docs]</a><span class="k">class</span> <span class="nc">DeploymentErrorResult</span><span class="p">(</span><span class="n">DeploymentResult</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Result of a single deployment with an error</span>
+
+<span class="sd">    :param deployment: deployment</span>
+<span class="sd">    :type deployment: :class:`~Deployment`</span>
+<span class="sd">    :param node: node</span>
+<span class="sd">    :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">    :param start: start time</span>
+<span class="sd">    :type start: :class:`datetime.datetime`</span>
+<span class="sd">    :param end: end time</span>
+<span class="sd">    :type end: :class:`datetime.datetime`</span>
+<span class="sd">    :param error: error</span>
+<span class="sd">    :type error: :class:`Exception`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deployment</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">error</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DeploymentErrorResult</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">DeploymentRunError</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">error</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">status</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">status</span>
+            <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">[</span><span class="s2">&quot;stdout&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">stdout</span>
+            <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">stderr</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">[</span><span class="s2">&quot;stderr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">stderr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="p">}</span></div>
+
+<div class="viewcode-block" id="DeploymentResults"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentResults">[docs]</a><span class="k">class</span> <span class="nc">DeploymentResults</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deployment results</span>
+
+<span class="sd">    :param start: start time</span>
+<span class="sd">    :type start: :class:`datetime.datetime`</span>
+<span class="sd">    :param end: end time</span>
+<span class="sd">    :type end: :class:`datetime.datetime`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="k">if</span> <span class="n">start</span> <span class="k">else</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="k">if</span> <span class="n">start</span> <span class="k">else</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">())</span>
+
+<div class="viewcode-block" id="DeploymentResults.addResult"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentResults.addResult">[docs]</a>    <span class="k">def</span> <span class="nf">addResult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param result: deployment result</span>
+<span class="sd">        :type result: :class:`~DeploymentResult`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="p">(</span><span class="n">DeploymentResult</span><span class="p">,</span> <span class="n">DeploymentErrorResult</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">result</span>
+            <span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; needs to be of type &#39;</span><span class="si">{1}</span><span class="s2">&#39; or </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">DeploymentResult</span><span class="p">,</span> <span class="n">DeploymentErrorResult</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DeploymentResults.addResults"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentResults.addResults">[docs]</a>    <span class="k">def</span> <span class="nf">addResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param results: deployment results</span>
+<span class="sd">        :type results: [:class:`~DeploymentResult`]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">result</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span>
+        <span class="p">})</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">numberOfErrors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of deployments with errors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">([</span>
+            <span class="n">deploymentResult</span>
+            <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span>
+            <span class="k">for</span> <span class="n">deploymentResult</span> <span class="ow">in</span> <span class="n">step</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">deploymentResult</span><span class="p">,</span> <span class="n">DeploymentErrorResult</span><span class="p">)</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DeploymentRunError"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.DeploymentRunError">[docs]</a><span class="k">class</span> <span class="nc">DeploymentRunError</span><span class="p">(</span><span class="n">libcloud</span><span class="o">.</span><span class="n">compute</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">DeploymentError</span><span class="p">,</span> <span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised in case a run command failed</span>
+
+<span class="sd">    :param node:</span>
+<span class="sd">    :type: node: :class:`~libcloud.compute.base.Node`</span>
+<span class="sd">    :param exceptionString: exception string</span>
+<span class="sd">    :type exceptionString: str</span>
+<span class="sd">    :param status: status</span>
+<span class="sd">    :type status: int</span>
+<span class="sd">    :param stdout: standard ouput</span>
+<span class="sd">    :type stdout: str</span>
+<span class="sd">    :param stderr: standard error</span>
+<span class="sd">    :type stderr: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">exceptionString</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># convert to base node info and make sure not to include the password</span>
+        <span class="n">baseNodeInfo</span> <span class="o">=</span> <span class="n">BaseNodeInfo</span><span class="p">(</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">privateIp</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">private_ips</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="p">[</span><span class="n">exceptionString</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Status: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">status</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Output: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">stderr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">stderr</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stderr</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DeploymentRunError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">baseNodeInfo</span><span class="p">,</span> <span class="n">original_exception</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;DeploymentRunError: node=</span><span class="si">{0}</span><span class="s2">, error=</span><span class="si">{1}</span><span class="s2">, driver=</span><span class="si">{2}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NodeDeploymentException"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodeDeploymentException">[docs]</a><span class="k">class</span> <span class="nc">NodeDeploymentException</span><span class="p">(</span><span class="n">BaseDeployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic node deployment exception used for example to capture client connection issues</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NodeDeploymentException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NodesInfoMap"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodesInfoMap">[docs]</a><span class="k">class</span> <span class="nc">NodesInfoMap</span><span class="p">(</span><span class="n">JSONSerializable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Nodes information mapping from name to :class:`~BaseNodeInfo` objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NodesInfoMap.items"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodesInfoMap.items">[docs]</a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Node items</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NodesInfoMap.addNodes"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodesInfoMap.addNodes">[docs]</a>    <span class="k">def</span> <span class="nf">addNodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add nodes</span>
+
+<span class="sd">        :param nodes: the nodes</span>
+<span class="sd">        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NodesInfoMap.add"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodesInfoMap.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add node</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; not being added because it already exists&quot;</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">BaseNodeInfo</span><span class="p">(</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">privateIp</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">private_ips</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;password&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="NodesInfoMap.getNodesByNames"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.NodesInfoMap.getNodesByNames">[docs]</a>    <span class="k">def</span> <span class="nf">getNodesByNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get nodes by their names</span>
+
+<span class="sd">        :param names: node names</span>
+<span class="sd">        :type names: [str]</span>
+<span class="sd">        :returns: nodes</span>
+<span class="sd">        :rtype: [:class:`~BaseNodeInfo`]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># create short name to node mapping</span>
+        <span class="n">shortNameNodesInfoMap</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">nodeInfo</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="n">nameParts</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            <span class="n">shortName</span> <span class="o">=</span> <span class="n">nameParts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">shortName</span> <span class="ow">in</span> <span class="n">shortNameNodesInfoMap</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;short name &#39;</span><span class="si">%s</span><span class="s2">&#39; already resolves to &#39;</span><span class="si">%s</span><span class="s2">&#39; so &#39;</span><span class="si">%s</span><span class="s2">&#39; will not be added to short name mapping&quot;</span><span class="p">,</span>
+                         <span class="n">shortName</span><span class="p">,</span> <span class="n">shortNameNodesInfoMap</span><span class="p">[</span><span class="n">shortName</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shortNameNodesInfoMap</span><span class="p">[</span><span class="n">nameParts</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">nodeInfo</span>
+
+        <span class="c1"># get nodes by name</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">nodeName</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nodeName</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">nodeName</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">nodeName</span> <span class="ow">in</span> <span class="n">shortNameNodesInfoMap</span><span class="p">:</span>
+                <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shortNameNodesInfoMap</span><span class="p">[</span><span class="n">nodeName</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; is not a valid node name&quot;</span><span class="p">,</span> <span class="n">nodeName</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nodes</span></div></div>
+
+<div class="viewcode-block" id="deploy"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.deploy">[docs]</a><span class="k">def</span> <span class="nf">deploy</span><span class="p">(</span><span class="n">deploymentOrDeploymentList</span><span class="p">,</span> <span class="n">nodeOrNodes</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">usePrivateIps</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run specified deployment on the nodes</span>
+
+<span class="sd">    :param deploymentOrDeploymentList: single deployment or deployment list</span>
+<span class="sd">    :type deploymentOrDeploymentList: :class:`~libcloud.compute.deployment.Deployment` or [:class:`~libcloud.compute.deployment.Deployment`]</span>
+<span class="sd">    :param nodeOrNodes: node or list of nodes</span>
+<span class="sd">    :type nodeOrNodes: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo` or [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">    :param timeout: timeout in seconds</span>
+<span class="sd">    :type timeout: int</span>
+<span class="sd">    :param usePrivateIps: use private ip to connect to nodes instead of the public one</span>
+<span class="sd">    :type usePrivateIps: bool</span>
+<span class="sd">    :returns: deployment results</span>
+<span class="sd">    :rtype: :class:`~DeploymentResults`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">totalStart</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+    <span class="n">deploymentResults</span> <span class="o">=</span> <span class="n">DeploymentResults</span><span class="p">()</span>
+
+    <span class="c1"># make sure we have a list of deployments</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">deploymentOrDeploymentList</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">deployments</span> <span class="o">=</span> <span class="n">deploymentOrDeploymentList</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">deployments</span> <span class="o">=</span> <span class="p">[</span><span class="n">deploymentOrDeploymentList</span><span class="p">]</span>
+
+    <span class="c1"># make sure we have a list of nodes</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodeOrNodes</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodeOrNodes</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodeOrNodes</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">deployments</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Nothing to deploy&quot;</span><span class="p">)</span>
+        <span class="n">totalEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">DeploymentResults</span><span class="p">(</span><span class="n">totalStart</span><span class="p">,</span> <span class="n">totalEnd</span><span class="p">)</span>
+
+    <span class="n">deploymentNames</span> <span class="o">=</span> <span class="p">[</span><span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span> <span class="k">for</span> <span class="n">deployment</span> <span class="ow">in</span> <span class="n">deployments</span><span class="p">]</span>
+
+    <span class="c1"># TODO: determine parallism or make configurable through option</span>
+    <span class="c1"># TODO: determine if we want to switch to regular process pool or keep using threads while assuming most of the processing is done on the nodes</span>
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">connectClient</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Connect SSH client to the specified node</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :returns: node, connected client</span>
+<span class="sd">        :rtype: (:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`, :class:`~libcloud.compute.ssh.BaseSSHClient`)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">AdvancedSSHClient</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">usePrivateIps</span> <span class="k">else</span> <span class="n">node</span><span class="o">.</span><span class="n">public_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">password</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;password&quot;</span><span class="p">),</span>
+                                   <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not connect to node &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">node</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span>
+
+    <span class="n">connectedClients</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">connectClient</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
+
+    <span class="c1"># check for errors in case we could not connect</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="ow">not</span> <span class="n">client</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">client</span> <span class="ow">in</span> <span class="n">connectedClients</span><span class="p">]):</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Found problems connecting to the nodes, stopping deployments&quot;</span><span class="p">)</span>
+        <span class="n">totalEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+        <span class="n">deploymentResults</span> <span class="o">=</span> <span class="n">DeploymentResults</span><span class="p">(</span><span class="n">totalStart</span><span class="p">,</span> <span class="n">totalEnd</span><span class="p">)</span>
+        <span class="n">deploymentResults</span><span class="o">.</span><span class="n">addResult</span><span class="p">(</span><span class="n">DeploymentErrorResult</span><span class="p">(</span><span class="n">NodeDeploymentException</span><span class="p">(),</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">totalStart</span><span class="p">,</span> <span class="n">totalEnd</span><span class="p">,</span> <span class="s2">&quot;Found problems connecting to the nodes, stopping deployments&quot;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">deploymentResults</span>
+
+    <span class="n">clients</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">client</span>
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span> <span class="ow">in</span> <span class="n">connectedClients</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">deployment</span> <span class="ow">in</span> <span class="n">deployments</span><span class="p">:</span>
+
+        <span class="n">deploymentStart</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">ClusterDeployment</span><span class="p">):</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">deployment</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">clients</span><span class="p">)</span>
+                <span class="n">deploymentEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                <span class="n">deploymentResults</span><span class="o">.</span><span class="n">addResult</span><span class="p">(</span><span class="n">DeploymentResult</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">deploymentStart</span><span class="p">,</span> <span class="n">deploymentEnd</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">DeploymentRunError</span> <span class="k">as</span> <span class="n">deploymentRunError</span><span class="p">:</span>
+                <span class="n">deploymentEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                <span class="n">deploymentResults</span><span class="o">.</span><span class="n">addResult</span><span class="p">(</span><span class="n">DeploymentErrorResult</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">deploymentRunError</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">deploymentStart</span><span class="p">,</span> <span class="n">deploymentEnd</span><span class="p">,</span> <span class="n">deploymentRunError</span><span class="p">))</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not run &#39;</span><span class="si">%s</span><span class="s2">&#39; on &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                          <span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">),</span> <span class="n">deploymentRunError</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+                <span class="n">deploymentEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                <span class="n">deploymentResults</span><span class="o">.</span><span class="n">addResult</span><span class="p">(</span><span class="n">DeploymentErrorResult</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">deploymentStart</span><span class="p">,</span> <span class="n">deploymentEnd</span><span class="p">,</span> <span class="n">exception</span><span class="p">))</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not run &#39;</span><span class="si">%s</span><span class="s2">&#39; on &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                          <span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">),</span> <span class="n">exception</span><span class="p">)</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">nodeDeploy</span><span class="p">(</span><span class="n">nodeClientTuple</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Individual worker function performing the deployment on the specified node</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">node</span><span class="p">,</span> <span class="n">client</span> <span class="o">=</span> <span class="n">nodeClientTuple</span>
+                <span class="n">nodeStart</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">deployment</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+                    <span class="n">nodeEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">DeploymentResult</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">nodeStart</span><span class="p">,</span> <span class="n">nodeEnd</span><span class="p">)</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running &#39;</span><span class="si">%s</span><span class="s2">&#39; on &#39;</span><span class="si">%s</span><span class="s2">&#39; took </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                             <span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">nodeEnd</span><span class="o">-</span><span class="n">nodeStart</span><span class="p">)</span>
+
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+                    <span class="n">nodeEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">DeploymentErrorResult</span><span class="p">(</span><span class="n">deployment</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">nodeStart</span><span class="p">,</span> <span class="n">nodeEnd</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not run &#39;</span><span class="si">%s</span><span class="s2">&#39; on &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                              <span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+            <span class="n">nodeDeploymentResults</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">nodeDeploy</span><span class="p">,</span> <span class="n">connectedClients</span><span class="p">)</span>
+
+            <span class="n">deploymentEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+            <span class="n">deploymentResults</span><span class="o">.</span><span class="n">addResults</span><span class="p">(</span><span class="n">nodeDeploymentResults</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running &#39;</span><span class="si">%s</span><span class="s2">&#39; on </span><span class="si">%d</span><span class="s2"> nodes took </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">deployment</span><span class="o">.</span><span class="n">typeAsString</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="n">deploymentEnd</span><span class="o">-</span><span class="n">deploymentStart</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">deploymentResults</span><span class="o">.</span><span class="n">numberOfErrors</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Found deployment with errors, stopping subsequent deployments&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">def</span> <span class="nf">closeClient</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close/disconnect client</span>
+
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">closeClient</span><span class="p">,</span> <span class="p">[</span><span class="n">nodeClient</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">nodeClient</span> <span class="ow">in</span> <span class="n">connectedClients</span><span class="p">])</span>
+
+    <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="n">totalEnd</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+    <span class="c1"># adjust end time</span>
+    <span class="n">deploymentResults</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">Datetime</span><span class="p">(</span><span class="n">totalEnd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deployments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running &#39;</span><span class="si">%s</span><span class="s2">&#39; on </span><span class="si">%d</span><span class="s2"> nodes took </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">deploymentNames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">),</span> <span class="n">totalEnd</span><span class="o">-</span><span class="n">totalStart</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">deploymentResults</span></div>
+
+<div class="viewcode-block" id="getDeployments"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.getDeployments">[docs]</a><span class="k">def</span> <span class="nf">getDeployments</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get deployment classes</span>
+
+<span class="sd">    :returns: deployment name to deployment class map</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">deployments</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="kn">import</span> <span class="nn">storm.deployments</span>
+    <span class="n">deploymentClasses</span> <span class="o">=</span> <span class="n">getModuleClasses</span><span class="p">(</span><span class="n">storm</span><span class="o">.</span><span class="n">deployments</span><span class="p">,</span> <span class="n">BaseDeployment</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">deployment</span> <span class="ow">in</span> <span class="n">deploymentClasses</span><span class="p">:</span>
+        <span class="c1"># get module name without the common storm.deployments prefix</span>
+        <span class="n">moduleName</span> <span class="o">=</span> <span class="n">getFullModuleName</span><span class="p">(</span><span class="n">deployment</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;storm.deployments.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">deployments</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">moduleName</span><span class="p">,</span> <span class="n">deployment</span><span class="o">.</span><span class="n">__name__</span><span class="p">)]</span> <span class="o">=</span> <span class="n">deployment</span>
+    <span class="k">return</span> <span class="n">deployments</span></div>
+
+<div class="viewcode-block" id="getDocumentation"><a class="viewcode-back" href="../../../thunder/base.html#storm.thunder.base.getDocumentation">[docs]</a><span class="k">def</span> <span class="nf">getDocumentation</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get documentation information on the specified item</span>
+
+<span class="sd">    :param item: a class, object, function, etc. with a doc string</span>
+<span class="sd">    :returns: a dictionary with parsed information on description and parameters</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">documentation</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{}</span>
+    <span class="p">}</span>
+    <span class="n">descriptionLines</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">__doc__</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">documentation</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">descriptionLines</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">PARAMETER_DOC_REGEX</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">__doc__</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">documentation</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]:</span>
+            <span class="n">documentation</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">][</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;docType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;param&quot;</span><span class="p">:</span>
+            <span class="n">documentation</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">][</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)][</span><span class="s2">&quot;description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;docType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span>
+            <span class="n">documentation</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">][</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">documentation</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

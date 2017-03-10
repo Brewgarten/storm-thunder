@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>storm.deployments.cluster &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thunder.html">Deployment Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>storm.deployments.cluster</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for storm.deployments.cluster</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Cluster deployments</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">c4.utils.logutil</span> <span class="k">import</span> <span class="n">ClassLogger</span>
+
+<span class="kn">from</span> <span class="nn">..thunder</span> <span class="k">import</span> <span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">,</span>
+                       <span class="n">DeploymentRunError</span><span class="p">,</span>
+                       <span class="n">deploy</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.ssh</span> <span class="k">import</span> <span class="p">(</span><span class="n">AddAuthorizedKey</span><span class="p">,</span> <span class="n">AddKnownHost</span><span class="p">,</span> <span class="n">AddToEtcHosts</span><span class="p">,</span>
+                  <span class="n">GenerateHostSSHKeys</span><span class="p">,</span> <span class="n">GenerateSSHKeys</span><span class="p">)</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="AddNodesToEtcHosts"><a class="viewcode-back" href="../../../deployments/cluster.html#storm.deployments.cluster.AddNodesToEtcHosts">[docs]</a><span class="k">class</span> <span class="nc">AddNodesToEtcHosts</span><span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deploy node information by adding ip addresses and aliases to /etc/hosts</span>
+
+<span class="sd">    :param privateIp: use private ip in /etc/hosts instead of the public one</span>
+<span class="sd">    :type privateIp: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">privateIp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AddNodesToEtcHosts</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">privateIp</span> <span class="o">=</span> <span class="n">privateIp</span>
+
+<div class="viewcode-block" id="AddNodesToEtcHosts.run"><a class="viewcode-back" href="../../../deployments/cluster.html#storm.deployments.cluster.AddNodesToEtcHosts.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">clients</span><span class="p">):</span>
+        <span class="c1"># gather node information from all nodes</span>
+        <span class="n">deployments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="c1"># get long and short hostnames</span>
+            <span class="n">nodeNameParts</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            <span class="n">hostnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodeNameParts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">hostnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nodeNameParts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># check which ip to use</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">privateIp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">:</span>
+                    <span class="n">deployments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AddToEtcHosts</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">private_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hostnames</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Node &#39;</span><span class="si">{0}</span><span class="s2">&#39; does not have a private ip&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">deployments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AddToEtcHosts</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">public_ips</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hostnames</span><span class="p">))</span>
+
+        <span class="c1"># go through all nodes and add node information of all other nodes to /etc/hosts</span>
+        <span class="n">deploy</span><span class="p">(</span><span class="n">deployments</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nodes</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="SetupPasswordlessSSH"><a class="viewcode-back" href="../../../deployments/cluster.html#storm.deployments.cluster.SetupPasswordlessSSH">[docs]</a><span class="k">class</span> <span class="nc">SetupPasswordlessSSH</span><span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deploys passwordless SSH between nodes</span>
+
+<span class="sd">    :param user: user</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SetupPasswordlessSSH</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userHome</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/home&quot;</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span> <span class="k">if</span> <span class="n">user</span> <span class="o">!=</span> <span class="s2">&quot;root&quot;</span> <span class="k">else</span> <span class="s2">&quot;/root&quot;</span>
+
+<div class="viewcode-block" id="SetupPasswordlessSSH.run"><a class="viewcode-back" href="../../../deployments/cluster.html#storm.deployments.cluster.SetupPasswordlessSSH.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">clients</span><span class="p">):</span>
+        <span class="n">hostKeys</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sshKeys</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Getting ssh keys from hosts in the cluster&quot;</span><span class="p">)</span>
+        <span class="n">deploy</span><span class="p">([</span><span class="n">GenerateHostSSHKeys</span><span class="p">(),</span> <span class="n">GenerateSSHKeys</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">)],</span> <span class="n">nodes</span><span class="p">)</span>
+        <span class="n">publicKeyPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">userHome</span><span class="p">,</span> <span class="s2">&quot;.ssh&quot;</span><span class="p">,</span> <span class="s2">&quot;id_rsa.pub&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">hostKeys</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;/etc/ssh/ssh_host_rsa_key.pub&quot;</span><span class="p">)</span>
+                <span class="n">sshKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">publicKeyPath</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not get ssh keys from &#39;</span><span class="si">{0}</span><span class="s2">&#39;: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exception</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deploying passwordless SSH&quot;</span><span class="p">)</span>
+        <span class="n">deployments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">host</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">hostKeys</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">deployments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AddKnownHost</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">sshKey</span> <span class="ow">in</span> <span class="n">sshKeys</span><span class="p">:</span>
+            <span class="n">deployments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AddAuthorizedKey</span><span class="p">(</span><span class="n">publicKey</span><span class="o">=</span><span class="n">sshKey</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">))</span>
+        <span class="n">deploy</span><span class="p">(</span><span class="n">deployments</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nodes</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

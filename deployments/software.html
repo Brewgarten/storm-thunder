@@ -1,0 +1,558 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Software &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../index.html"/>
+        <link rel="up" title="Deployments" href="../deployments.html"/>
+        <link rel="next" title="SSH" href="ssh.html"/>
+        <link rel="prev" title="Node" href="node.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../thunder.html">Deployment Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deployments.html">Deployments</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cluster.html">Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="node.html">Node</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">SSH</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../deployments.html">Deployments</a> &raquo;</li>
+      
+    <li>Software</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/deployments/software.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-storm.deployments.software">
+<span id="software"></span><h1>Software<a class="headerlink" href="#module-storm.deployments.software" title="Permalink to this headline">¶</a></h1>
+<p>Software related deployments</p>
+<dl class="class">
+<dt id="storm.deployments.software.ClusterDeployToDirectory">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">ClusterDeployToDirectory</code><span class="sig-paren">(</span><em>directory</em>, <em>*fileNames</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#ClusterDeployToDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.ClusterDeployToDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.ClusterDeployment" title="storm.thunder.base.ClusterDeployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.ClusterDeployment</span></code></a></p>
+<p>Deploy files to the specified directory and return the full
+remote paths of the files.</p>
+<p>This uses a fan-out approach so that the cost of uploading only occurs once</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> (<em>str</em>) &#8211; remote directory</li>
+<li><strong>fileNames</strong> (<em>[str]</em>) &#8211; file names</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.ClusterDeployToDirectory.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.ClusterDeployToDirectory.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.ClusterDeployToDirectory.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>nodes</em>, <em>clients</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#ClusterDeployToDirectory.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.ClusterDeployToDirectory.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run cluster-wide deployment on speficied nodes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nodes</strong> ([<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code>]) &#8211; the nodes</li>
+<li><strong>clients</strong> (<em>dict</em>) &#8211; node name to connected SSH client mapping</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">nodes</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">[<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code>]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.DeployPythonPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">DeployPythonPackages</code><span class="sig-paren">(</span><em>packages</em>, <em>pip='/usr/bin/pip'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#DeployPythonPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.DeployPythonPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Upload and install Python package</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>packages</strong> (<em>[str]</em>) &#8211; the paths to packages</li>
+<li><strong>pip</strong> (<em>str</em>) &#8211; path to pip to use</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.DeployPythonPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.DeployPythonPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.DeployPythonPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#DeployPythonPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.DeployPythonPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.InstallLocalRPMPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">InstallLocalRPMPackages</code><span class="sig-paren">(</span><em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#InstallLocalRPMPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.InstallLocalRPMPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Upload rpms and install them on the node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm file names</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.InstallLocalRPMPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.InstallLocalRPMPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.InstallLocalRPMPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#InstallLocalRPMPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.InstallLocalRPMPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.InstallRPMPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">InstallRPMPackages</code><span class="sig-paren">(</span><em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#InstallRPMPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.InstallRPMPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Download and install rpm using yum repositories</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm package names or rpm file names</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.InstallRPMPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.InstallRPMPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.InstallRPMPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#InstallRPMPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.InstallRPMPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.RemoteCopy">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">RemoteCopy</code><span class="sig-paren">(</span><em>nodeName</em>, <em>directory</em>, <em>*fileNames</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#RemoteCopy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.RemoteCopy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Copy files from the specified node into the directory onto the current node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ip</strong> (<em>str</em>) &#8211; ip address</li>
+<li><strong>nodeName</strong> (<em>str</em>) &#8211; name of the node from which to copy</li>
+<li><strong>directory</strong> (<em>str</em>) &#8211; remote directory to copy into</li>
+<li><strong>fileNames</strong> (<em>[str]</em>) &#8211; file names to be copied</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.RemoteCopy.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.RemoteCopy.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.RemoteCopy.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#RemoteCopy.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.RemoteCopy.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs this deployment task on node using the client provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code>) &#8211; node</li>
+<li><strong>client</strong> (<code class="xref py py-class docutils literal"><span class="pre">BaseSSHClient</span></code>) &#8211; connected SSH client</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">node</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.RemoveRPMPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">RemoveRPMPackages</code><span class="sig-paren">(</span><em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#RemoveRPMPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.RemoveRPMPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Remove rpm</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm package names or rpm file names</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.RemoveRPMPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.RemoveRPMPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.RemoveRPMPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#RemoveRPMPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.RemoveRPMPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs this deployment task on node using the client provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code>) &#8211; node</li>
+<li><strong>client</strong> (<code class="xref py py-class docutils literal"><span class="pre">BaseSSHClient</span></code>) &#8211; connected SSH client</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">node</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.UpdateKernel">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">UpdateKernel</code><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateKernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Class to update kernel on nodes</p>
+<dl class="attribute">
+<dt id="storm.deployments.software.UpdateKernel.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.UpdateKernel.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.UpdateKernel.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateKernel.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateKernel.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.UpdateLocalRPMPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">UpdateLocalRPMPackages</code><span class="sig-paren">(</span><em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateLocalRPMPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateLocalRPMPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Upload rpms to update existing ones on the node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm file names</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.UpdateLocalRPMPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.UpdateLocalRPMPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.UpdateLocalRPMPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateLocalRPMPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateLocalRPMPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.UpdateRPMPackages">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">UpdateRPMPackages</code><span class="sig-paren">(</span><em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateRPMPackages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateRPMPackages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Download and update rpms using yum repositories</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm package names or rpm file names</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.UpdateRPMPackages.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.UpdateRPMPackages.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.UpdateRPMPackages.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UpdateRPMPackages.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UpdateRPMPackages.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.deployments.software.UploadToDirectory">
+<em class="property">class </em><code class="descclassname">storm.deployments.software.</code><code class="descname">UploadToDirectory</code><span class="sig-paren">(</span><em>directory</em>, <em>*fileNames</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UploadToDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UploadToDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../thunder/base.html#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.Deployment</span></code></a></p>
+<p>Upload files to the specified directory and return the full
+remote paths of the files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> (<em>str</em>) &#8211; remote directory</li>
+<li><strong>fileNames</strong> (<em>[str]</em>) &#8211; file names</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="storm.deployments.software.UploadToDirectory.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.deployments.software.UploadToDirectory.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="storm.deployments.software.UploadToDirectory.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#UploadToDirectory.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.UploadToDirectory.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.deployments.software.isRPMPackageInstalled">
+<code class="descclassname">storm.deployments.software.</code><code class="descname">isRPMPackageInstalled</code><span class="sig-paren">(</span><em>client</em>, <em>*rpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/deployments/software.html#isRPMPackageInstalled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.deployments.software.isRPMPackageInstalled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the specified rpm packages are installed</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>client</strong> (<code class="xref py py-class docutils literal"><span class="pre">BaseSSHClient</span></code>) &#8211; connected SSH client</li>
+<li><strong>rpms</strong> (<em>[str]</em>) &#8211; rpm package names</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">mapping of package names to bools</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ssh.html" class="btn btn-neutral float-right" title="SSH" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="node.html" class="btn btn-neutral" title="Node" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

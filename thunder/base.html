@@ -1,0 +1,583 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Base Components &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../index.html"/>
+        <link rel="up" title="Deployment Management" href="../thunder.html"/>
+        <link rel="next" title="SSH Client" href="client.html"/>
+        <link rel="prev" title="Deployment Management" href="../thunder.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../thunder.html">Deployment Management</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Base Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">SSH Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manager.html">Manager</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../thunder.html">Deployment Management</a> &raquo;</li>
+      
+    <li>Base Components</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/thunder/base.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-storm.thunder.base">
+<span id="base-components"></span><h1>Base Components<a class="headerlink" href="#module-storm.thunder.base" title="Permalink to this headline">¶</a></h1>
+<p>Base components of deployments and deployment functionality</p>
+<dl class="class">
+<dt id="storm.thunder.base.BaseDeployment">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">BaseDeployment</code><a class="reference internal" href="../_modules/storm/thunder/base.html#BaseDeployment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.BaseDeployment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Base deployment class</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.BaseNodeInfo">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">BaseNodeInfo</code><span class="sig-paren">(</span><em>name</em>, <em>publicIp</em>, <em>privateIp=None</em>, <em>password=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#BaseNodeInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.BaseNodeInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Base node information object that contains name, public ip address and ssh password
+in a manner that is compatible to <code class="xref py py-class docutils literal"><span class="pre">Node</span></code> objects</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<em>str</em>) &#8211; node name</li>
+<li><strong>publicIp</strong> (<em>str</em>) &#8211; public ip of the node</li>
+<li><strong>privateIp</strong> (<em>str</em>) &#8211; private ip of the node</li>
+<li><strong>password</strong> (<em>str</em>) &#8211; SSH password</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.ClusterDeployment">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">ClusterDeployment</code><a class="reference internal" href="../_modules/storm/thunder/base.html#ClusterDeployment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.ClusterDeployment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#storm.thunder.base.BaseDeployment" title="storm.thunder.base.BaseDeployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.BaseDeployment</span></code></a></p>
+<p>Base cluster deployment class</p>
+<dl class="method">
+<dt id="storm.thunder.base.ClusterDeployment.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>nodes</em>, <em>clients</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#ClusterDeployment.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.ClusterDeployment.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run cluster-wide deployment on speficied nodes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nodes</strong> ([<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>]) &#8211; the nodes</li>
+<li><strong>clients</strong> (<em>dict</em>) &#8211; node name to connected SSH client mapping</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">nodes</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">[<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.Datetime">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">Datetime</code><span class="sig-paren">(</span><em>value=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#Datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.Datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>JSON serializable datetime</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; datetime</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="storm.thunder.base.Datetime.toJSONSerializable">
+<code class="descname">toJSONSerializable</code><span class="sig-paren">(</span><em>includeClassInfo=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#Datetime.toJSONSerializable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.Datetime.toJSONSerializable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to some JSON serializable Python object such as
+str, list, dict, etc.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>includeClassInfo</strong> (<em>bool</em>) &#8211; include class info in JSON, this
+allows deserialization into the respective Python objects</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">JSON serializable Python object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.Deployment">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">Deployment</code><a class="reference internal" href="../_modules/storm/thunder/base.html#Deployment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.Deployment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#storm.thunder.base.BaseDeployment" title="storm.thunder.base.BaseDeployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.BaseDeployment</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">libcloud.compute.deployment.Deployment</span></code></p>
+<p>Base deployment class</p>
+<dl class="method">
+<dt id="storm.thunder.base.Deployment.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>node</em>, <em>client</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#Deployment.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.Deployment.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs this deployment task on node using the client provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>) &#8211; node</li>
+<li><strong>client</strong> (<code class="xref py py-class docutils literal"><span class="pre">BaseSSHClient</span></code>) &#8211; connected SSH client</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">node</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.DeploymentErrorResult">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">DeploymentErrorResult</code><span class="sig-paren">(</span><em>deployment</em>, <em>node</em>, <em>start</em>, <em>end</em>, <em>error</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentErrorResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentErrorResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#storm.thunder.base.DeploymentResult" title="storm.thunder.base.DeploymentResult"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.DeploymentResult</span></code></a></p>
+<p>Result of a single deployment with an error</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>deployment</strong> (<a class="reference internal" href="#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">Deployment</span></code></a>) &#8211; deployment</li>
+<li><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>) &#8211; node</li>
+<li><strong>start</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; start time</li>
+<li><strong>end</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; end time</li>
+<li><strong>error</strong> (<code class="xref py py-class docutils literal"><span class="pre">Exception</span></code>) &#8211; error</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.DeploymentResult">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">DeploymentResult</code><span class="sig-paren">(</span><em>deployment</em>, <em>node</em>, <em>start</em>, <em>end</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Result of a single deployment</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>deployment</strong> (<a class="reference internal" href="#storm.thunder.base.Deployment" title="storm.thunder.base.Deployment"><code class="xref py py-class docutils literal"><span class="pre">Deployment</span></code></a>) &#8211; deployment</li>
+<li><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>) &#8211; node</li>
+<li><strong>start</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; start time</li>
+<li><strong>end</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; end time</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.DeploymentResults">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">DeploymentResults</code><span class="sig-paren">(</span><em>start=None</em>, <em>end=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentResults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Deployment results</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>start</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; start time</li>
+<li><strong>end</strong> (<code class="xref py py-class docutils literal"><span class="pre">datetime.datetime</span></code>) &#8211; end time</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="storm.thunder.base.DeploymentResults.addResult">
+<code class="descname">addResult</code><span class="sig-paren">(</span><em>result</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentResults.addResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentResults.addResult" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>result</strong> (<a class="reference internal" href="#storm.thunder.base.DeploymentResult" title="storm.thunder.base.DeploymentResult"><code class="xref py py-class docutils literal"><span class="pre">DeploymentResult</span></code></a>) &#8211; deployment result</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.base.DeploymentResults.addResults">
+<code class="descname">addResults</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentResults.addResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentResults.addResults" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>results</strong> ([<a class="reference internal" href="#storm.thunder.base.DeploymentResult" title="storm.thunder.base.DeploymentResult"><code class="xref py py-class docutils literal"><span class="pre">DeploymentResult</span></code></a>]) &#8211; deployment results</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="storm.thunder.base.DeploymentResults.numberOfErrors">
+<code class="descname">numberOfErrors</code><a class="headerlink" href="#storm.thunder.base.DeploymentResults.numberOfErrors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of deployments with errors</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="storm.thunder.base.DeploymentRunError">
+<em class="property">exception </em><code class="descclassname">storm.thunder.base.</code><code class="descname">DeploymentRunError</code><span class="sig-paren">(</span><em>node</em>, <em>exceptionString</em>, <em>status=None</em>, <em>stdout=None</em>, <em>stderr=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#DeploymentRunError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.DeploymentRunError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">libcloud.compute.types.DeploymentError</span></code>, <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Exception raised in case a run command failed</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>node</strong> &#8211; </li>
+<li><strong>exceptionString</strong> (<em>str</em>) &#8211; exception string</li>
+<li><strong>status</strong> (<em>int</em>) &#8211; status</li>
+<li><strong>stdout</strong> (<em>str</em>) &#8211; standard ouput</li>
+<li><strong>stderr</strong> (<em>str</em>) &#8211; standard error</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Type:</th><td class="field-body"><p class="first last">node: <code class="xref py py-class docutils literal"><span class="pre">Node</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.NodeDeploymentException">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">NodeDeploymentException</code><a class="reference internal" href="../_modules/storm/thunder/base.html#NodeDeploymentException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodeDeploymentException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#storm.thunder.base.BaseDeployment" title="storm.thunder.base.BaseDeployment"><code class="xref py py-class docutils literal"><span class="pre">storm.thunder.base.BaseDeployment</span></code></a></p>
+<p>Generic node deployment exception used for example to capture client connection issues</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.base.NodesInfoMap">
+<em class="property">class </em><code class="descclassname">storm.thunder.base.</code><code class="descname">NodesInfoMap</code><a class="reference internal" href="../_modules/storm/thunder/base.html#NodesInfoMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodesInfoMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Nodes information mapping from name to <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a> objects</p>
+<dl class="method">
+<dt id="storm.thunder.base.NodesInfoMap.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#NodesInfoMap.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodesInfoMap.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>node</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>) &#8211; node</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.base.NodesInfoMap.addNodes">
+<code class="descname">addNodes</code><span class="sig-paren">(</span><em>nodes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#NodesInfoMap.addNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodesInfoMap.addNodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add nodes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nodes</strong> ([<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>]) &#8211; the nodes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.base.NodesInfoMap.getNodesByNames">
+<code class="descname">getNodesByNames</code><span class="sig-paren">(</span><em>names</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#NodesInfoMap.getNodesByNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodesInfoMap.getNodesByNames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get nodes by their names</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>names</strong> (<em>[str]</em>) &#8211; node names</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">nodes</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">[<a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storm.thunder.base.NodesInfoMap.items">
+<code class="descname">items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#NodesInfoMap.items"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.NodesInfoMap.items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Node items</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.base.deploy">
+<code class="descclassname">storm.thunder.base.</code><code class="descname">deploy</code><span class="sig-paren">(</span><em>deploymentOrDeploymentList</em>, <em>nodeOrNodes</em>, <em>timeout=60</em>, <em>usePrivateIps=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#deploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.deploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run specified deployment on the nodes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>deploymentOrDeploymentList</strong> (<code class="xref py py-class docutils literal"><span class="pre">Deployment</span></code> or [<code class="xref py py-class docutils literal"><span class="pre">Deployment</span></code>]) &#8211; single deployment or deployment list</li>
+<li><strong>nodeOrNodes</strong> (<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a> or [<code class="xref py py-class docutils literal"><span class="pre">Node</span></code> or <a class="reference internal" href="#storm.thunder.base.BaseNodeInfo" title="storm.thunder.base.BaseNodeInfo"><code class="xref py py-class docutils literal"><span class="pre">BaseNodeInfo</span></code></a>]) &#8211; node or list of nodes</li>
+<li><strong>timeout</strong> (<em>int</em>) &#8211; timeout in seconds</li>
+<li><strong>usePrivateIps</strong> (<em>bool</em>) &#8211; use private ip to connect to nodes instead of the public one</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">deployment results</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#storm.thunder.base.DeploymentResults" title="storm.thunder.base.DeploymentResults"><code class="xref py py-class docutils literal"><span class="pre">DeploymentResults</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.base.getDeployments">
+<code class="descclassname">storm.thunder.base.</code><code class="descname">getDeployments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#getDeployments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.getDeployments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get deployment classes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">deployment name to deployment class map</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.base.getDocumentation">
+<code class="descclassname">storm.thunder.base.</code><code class="descname">getDocumentation</code><span class="sig-paren">(</span><em>item</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/base.html#getDocumentation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.base.getDocumentation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get documentation information on the specified item</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>item</strong> &#8211; a class, object, function, etc. with a doc string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a dictionary with parsed information on description and parameters</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="client.html" class="btn btn-neutral float-right" title="SSH Client" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../thunder.html" class="btn btn-neutral" title="Deployment Management" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

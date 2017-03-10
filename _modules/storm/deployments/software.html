@@ -1,0 +1,614 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>storm.deployments.software &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../thunder.html">Deployment Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>storm.deployments.software</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for storm.deployments.software</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Software related deployments</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">c4.utils.logutil</span> <span class="k">import</span> <span class="n">ClassLogger</span>
+
+<span class="kn">from</span> <span class="nn">..thunder</span> <span class="k">import</span> <span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">,</span>
+                       <span class="n">Deployment</span><span class="p">,</span>
+                       <span class="n">DeploymentRunError</span><span class="p">,</span>
+                       <span class="n">RemoteTemporaryDirectory</span><span class="p">,</span>
+                       <span class="n">deploy</span><span class="p">)</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="ClusterDeployToDirectory"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.ClusterDeployToDirectory">[docs]</a><span class="k">class</span> <span class="nc">ClusterDeployToDirectory</span><span class="p">(</span><span class="n">ClusterDeployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deploy files to the specified directory and return the full</span>
+<span class="sd">    remote paths of the files.</span>
+
+<span class="sd">    This uses a fan-out approach so that the cost of uploading only occurs once</span>
+
+<span class="sd">    :param directory: remote directory</span>
+<span class="sd">    :type directory: str</span>
+<span class="sd">    :param fileNames: file names</span>
+<span class="sd">    :type fileNames: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="o">*</span><span class="n">fileNames</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ClusterDeployToDirectory</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="n">fileNames</span><span class="p">:</span>
+            <span class="n">potentialFileNames</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">potentialFileNames</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; is an invalid path&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">potentialFileName</span> <span class="ow">in</span> <span class="n">potentialFileNames</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; is an invalid path&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remoteFileNames</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ClusterDeployToDirectory.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.ClusterDeployToDirectory.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">clients</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run cluster-wide deployment on speficied nodes</span>
+
+<span class="sd">        :param nodes: the nodes</span>
+<span class="sd">        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">        :param clients: node name to connected SSH client mapping</span>
+<span class="sd">        :type clients: dict</span>
+<span class="sd">        :returns: nodes</span>
+<span class="sd">        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: check if we need natural sort</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">node</span><span class="p">:</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># client for the first node</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="n">UploadToDirectory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+
+        <span class="n">deployments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">:</span>
+            <span class="c1"># TODO: make this more robust</span>
+            <span class="n">remoteFileName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+            <span class="n">deployments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RemoteCopy</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">remoteFileName</span><span class="p">))</span>
+
+        <span class="n">deploy</span><span class="p">(</span><span class="n">deployments</span><span class="p">,</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="n">nodes</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="DeployPythonPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.DeployPythonPackages">[docs]</a><span class="k">class</span> <span class="nc">DeployPythonPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Upload and install Python package</span>
+
+<span class="sd">    :param packages: the paths to packages</span>
+<span class="sd">    :type packages: [str]</span>
+<span class="sd">    :param pip: path to pip to use</span>
+<span class="sd">    :type pip: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packages</span><span class="p">,</span> <span class="n">pip</span><span class="o">=</span><span class="s2">&quot;/usr/bin/pip&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DeployPythonPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">packagePath</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">packagePath</span> <span class="ow">in</span> <span class="n">packages</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pip</span> <span class="o">=</span> <span class="n">pip</span>
+
+<div class="viewcode-block" id="DeployPythonPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.DeployPythonPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="n">RemoteTemporaryDirectory</span><span class="p">(</span><span class="n">client</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpDirectory</span><span class="p">:</span>
+
+            <span class="c1"># upload packages</span>
+            <span class="n">uploadedPackages</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">r&quot;-\d.*&quot;</span><span class="p">,</span> <span class="s2">r&quot;&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">packageName</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">packageName</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages</span><span class="p">,</span> <span class="n">tmpDirectory</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uploadedPackages</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not deploy Python packages&quot;</span><span class="p">)</span>
+
+            <span class="c1"># install uploaded packages</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{pip}</span><span class="s2"> install --upgrade --force-reinstall --pre --no-index --find-links </span><span class="si">{tmpDirectory}</span><span class="s2"> </span><span class="si">{packages}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">pip</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pip</span><span class="p">,</span>
+                <span class="n">tmpDirectory</span><span class="o">=</span><span class="n">tmpDirectory</span><span class="p">,</span>
+                <span class="n">packages</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">uploadedPackages</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not deploy Python packages&quot;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="InstallLocalRPMPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.InstallLocalRPMPackages">[docs]</a><span class="k">class</span> <span class="nc">InstallLocalRPMPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Upload rpms and install them on the node.</span>
+
+<span class="sd">    :param rpms: rpm file names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InstallLocalRPMPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span> <span class="o">=</span> <span class="n">rpms</span>
+
+<div class="viewcode-block" id="InstallLocalRPMPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.InstallLocalRPMPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="c1"># generate package to file mapping</span>
+        <span class="n">packages</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># remove rpm extension</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fileName</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">fileName</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.rpm&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span> <span class="n">fileName</span>
+            <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span>
+        <span class="p">}</span>
+        <span class="n">installedRPMInfo</span> <span class="o">=</span> <span class="n">isRPMPackageInstalled</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="o">*</span><span class="n">packages</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="c1"># collect the packages that are missing</span>
+        <span class="n">missingRPMs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">packageName</span><span class="p">,</span> <span class="n">installed</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">installedRPMInfo</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">installed</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Package &#39;</span><span class="si">%s</span><span class="s2">&#39; already installed&quot;</span><span class="p">,</span> <span class="n">packageName</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">missingRPMs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packages</span><span class="p">[</span><span class="n">packageName</span><span class="p">])</span>
+
+        <span class="c1"># upload and install the missing packages</span>
+        <span class="k">with</span> <span class="n">RemoteTemporaryDirectory</span><span class="p">(</span><span class="n">client</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpDirectory</span><span class="p">:</span>
+            <span class="n">uploadToDirectory</span> <span class="o">=</span> <span class="n">UploadToDirectory</span><span class="p">(</span><span class="n">tmpDirectory</span><span class="p">,</span> <span class="o">*</span><span class="n">missingRPMs</span><span class="p">)</span>
+            <span class="n">uploadToDirectory</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+            <span class="n">InstallRPMPackages</span><span class="p">(</span><span class="o">*</span><span class="n">uploadToDirectory</span><span class="o">.</span><span class="n">remoteFileNames</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="InstallRPMPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.InstallRPMPackages">[docs]</a><span class="k">class</span> <span class="nc">InstallRPMPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download and install rpm using yum repositories</span>
+
+<span class="sd">    :param rpms: rpm package names or rpm file names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InstallRPMPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span> <span class="o">=</span> <span class="n">rpms</span>
+
+<div class="viewcode-block" id="InstallRPMPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.InstallRPMPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum install --assumeyes </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;[Errno 256] No more mirrors to try.&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Encountered yum cache mirror problem in attempt </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">attempt</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum clean all&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;Nothing to do&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s2">r&quot;/(?P&lt;name&gt;.*): does not update installed package.&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Package &#39;</span><span class="si">%s</span><span class="s2">&#39; older than installed package&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not yum install &#39;</span><span class="si">{0}</span><span class="s2">&#39; packages.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)),</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s2">r&quot;Package (?P&lt;name&gt;.*) already installed&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Package &#39;</span><span class="si">%s</span><span class="s2">&#39; already installed&quot;</span><span class="p">,</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="RemoteCopy"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.RemoteCopy">[docs]</a><span class="k">class</span> <span class="nc">RemoteCopy</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy files from the specified node into the directory onto the current node</span>
+
+<span class="sd">    :param ip: ip address</span>
+<span class="sd">    :type ip: str</span>
+<span class="sd">    :param nodeName: name of the node from which to copy</span>
+<span class="sd">    :type nodeName: str</span>
+<span class="sd">    :param directory: remote directory to copy into</span>
+<span class="sd">    :type directory: str</span>
+<span class="sd">    :param fileNames: file names to be copied</span>
+<span class="sd">    :type fileNames: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodeName</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="o">*</span><span class="n">fileNames</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RemoteCopy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodeName</span> <span class="o">=</span> <span class="n">nodeName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span> <span class="o">=</span> <span class="n">fileNames</span>
+
+<div class="viewcode-block" id="RemoteCopy.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.RemoteCopy.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">:</span>
+            <span class="n">remoteFileName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="n">remoteFileName</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already uploaded&quot;</span><span class="p">,</span> <span class="n">fileName</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;scp -pr root@</span><span class="si">{nodeName}</span><span class="s2">:</span><span class="si">{source}</span><span class="s2"> </span><span class="si">{destination}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">nodeName</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nodeName</span><span class="p">,</span>
+                    <span class="n">source</span><span class="o">=</span><span class="n">fileName</span><span class="p">,</span>
+                    <span class="n">destination</span><span class="o">=</span><span class="n">remoteFileName</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not remote copy &#39;</span><span class="si">{0}</span><span class="s2">&#39; to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="RemoveRPMPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.RemoveRPMPackages">[docs]</a><span class="k">class</span> <span class="nc">RemoveRPMPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove rpm</span>
+
+<span class="sd">    :param rpms: rpm package names or rpm file names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RemoveRPMPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span> <span class="o">=</span> <span class="n">rpms</span>
+
+<div class="viewcode-block" id="RemoveRPMPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.RemoveRPMPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs this deployment task on node using the client provided.</span>
+
+<span class="sd">        :param node: node</span>
+<span class="sd">        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        :param client: connected SSH client</span>
+<span class="sd">        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">        :returns: node</span>
+<span class="sd">        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum erase --assumeyes </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;[Errno 256] No more mirrors to try.&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Encountered yum cache mirror problem in attempt </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">attempt</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum clean all&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not yum erase &#39;</span><span class="si">{0}</span><span class="s2">&#39; packages.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)),</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s2">r&quot;No Match for argument: (?P&lt;name&gt;.*)&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Package &#39;</span><span class="si">%s</span><span class="s2">&#39; not installed&quot;</span><span class="p">,</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="UpdateLocalRPMPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateLocalRPMPackages">[docs]</a><span class="k">class</span> <span class="nc">UpdateLocalRPMPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Upload rpms to update existing ones on the node.</span>
+
+<span class="sd">    :param rpms: rpm file names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UpdateLocalRPMPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span> <span class="o">=</span> <span class="n">rpms</span>
+
+<div class="viewcode-block" id="UpdateLocalRPMPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateLocalRPMPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">RemoteTemporaryDirectory</span><span class="p">(</span><span class="n">client</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpDirectory</span><span class="p">:</span>
+            <span class="n">uploadToDirectory</span> <span class="o">=</span> <span class="n">UploadToDirectory</span><span class="p">(</span><span class="n">tmpDirectory</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)</span>
+            <span class="n">uploadToDirectory</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+            <span class="n">UpdateRPMPackages</span><span class="p">(</span><span class="o">*</span><span class="n">uploadToDirectory</span><span class="o">.</span><span class="n">remoteFileNames</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="UpdateRPMPackages"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateRPMPackages">[docs]</a><span class="k">class</span> <span class="nc">UpdateRPMPackages</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download and update rpms using yum repositories</span>
+
+<span class="sd">    :param rpms: rpm package names or rpm file names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UpdateRPMPackages</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span> <span class="o">=</span> <span class="n">rpms</span>
+
+<div class="viewcode-block" id="UpdateRPMPackages.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateRPMPackages.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum update --assumeyes </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;[Errno 256] No more mirrors to try.&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Encountered yum cache mirror problem in attempt </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">attempt</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;yum clean all&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not yum update &#39;</span><span class="si">{0}</span><span class="s2">&#39; packages.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rpms</span><span class="p">)),</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="c1"># note that update does not error out when packages are not updated</span>
+        <span class="k">if</span> <span class="n">stderr</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">stderr</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s2">r&quot;/(?P&lt;name&gt;.*): does not update installed package.&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Package &#39;</span><span class="si">%s</span><span class="s2">&#39; already updated&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="UpdateKernel"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateKernel">[docs]</a><span class="k">class</span> <span class="nc">UpdateKernel</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to update kernel on nodes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UpdateKernel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="UpdateKernel.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UpdateKernel.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+
+        <span class="c1">## update kernel</span>
+        <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;/usr/bin/yum update kernel --assumeyes&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span>
+                <span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not update kernel&quot;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;No Packages marked for Update&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+
+        <span class="c1">## reboot node to get the updated kernel</span>
+        <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;/sbin/reboot&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span>
+                <span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Error while rebooting&quot;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">client</span><span class="o">.</span><span class="n">waitForReady</span><span class="p">(</span><span class="n">initialWait</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">pollfrequency</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span>
+                <span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Unable to reboot the system&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<span class="nd">@ClassLogger</span>
+<div class="viewcode-block" id="UploadToDirectory"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UploadToDirectory">[docs]</a><span class="k">class</span> <span class="nc">UploadToDirectory</span><span class="p">(</span><span class="n">Deployment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Upload files to the specified directory and return the full</span>
+<span class="sd">    remote paths of the files</span>
+
+<span class="sd">    :param directory: remote directory</span>
+<span class="sd">    :type directory: str</span>
+<span class="sd">    :param fileNames: file names</span>
+<span class="sd">    :type fileNames: [str]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="o">*</span><span class="n">fileNames</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UploadToDirectory</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="n">fileNames</span><span class="p">:</span>
+            <span class="n">potentialFileNames</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">potentialFileNames</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; is an invalid path&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">potentialFileName</span> <span class="ow">in</span> <span class="n">potentialFileNames</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{0}</span><span class="s2">&#39; is an invalid path&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">potentialFileName</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remoteFileNames</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="UploadToDirectory.run"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.UploadToDirectory.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remoteFileNames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileNames</span><span class="p">:</span>
+            <span class="n">remoteFileName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">isFile</span><span class="p">(</span><span class="n">remoteFileName</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; already uploaded&quot;</span><span class="p">,</span> <span class="n">fileName</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">client</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span><span class="n">fileName</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">remoteFileName</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">DeploymentRunError</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;Could not upload &#39;</span><span class="si">{0}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fileName</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remoteFileNames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">remoteFileName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">node</span></div></div>
+
+<div class="viewcode-block" id="isRPMPackageInstalled"><a class="viewcode-back" href="../../../deployments/software.html#storm.deployments.software.isRPMPackageInstalled">[docs]</a><span class="k">def</span> <span class="nf">isRPMPackageInstalled</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="o">*</span><span class="n">rpms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine if the specified rpm packages are installed</span>
+
+<span class="sd">    :param client: connected SSH client</span>
+<span class="sd">    :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`</span>
+<span class="sd">    :param rpms: rpm package names</span>
+<span class="sd">    :type rpms: [str]</span>
+<span class="sd">    :returns: mapping of package names to bools</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rpms</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="n">packages</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># remove rpm extension</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">rpm</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">rpm</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.rpm&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">rpm</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">rpm</span> <span class="ow">in</span> <span class="n">rpms</span>
+    <span class="p">]</span>
+    <span class="n">stdout</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;rpm -q </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">packages</span><span class="p">)))</span>
+    <span class="n">installed</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">r&quot;package (?P&lt;name&gt;.+) is not installed&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">installed</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">installed</span><span class="p">[</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">installed</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

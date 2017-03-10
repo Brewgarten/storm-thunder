@@ -1,0 +1,383 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Configuration &mdash; Storm Thunder 0.12.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Storm Thunder 0.12.1 documentation" href="../index.html"/>
+        <link rel="up" title="Deployment Management" href="../thunder.html"/>
+        <link rel="next" title="Manager" href="manager.html"/>
+        <link rel="prev" title="SSH Client" href="client.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Storm Thunder
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.12.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../thunder.html">Deployment Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="base.html">Base Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">SSH Client</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deployment-dsl">Deployment DSL</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="manager.html">Manager</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deployments.html">Deployments</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Storm Thunder</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../thunder.html">Deployment Management</a> &raquo;</li>
+      
+    <li>Configuration</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/thunder/configuration.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-storm.thunder.configuration">
+<span id="configuration"></span><h1>Configuration<a class="headerlink" href="#module-storm.thunder.configuration" title="Permalink to this headline">¶</a></h1>
+<p>Serializable configuration functionality</p>
+<div class="section" id="deployment-dsl">
+<h2>Deployment DSL<a class="headerlink" href="#deployment-dsl" title="Permalink to this headline">¶</a></h2>
+<p>We support multiple types of the deployment syntax.</p>
+<p>1. The fully Hjson parseable version where deployments are
+encapsulated in <code class="docutils literal"><span class="pre">{}</span></code>. For example:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>deployments: <span class="o">[</span>
+    <span class="o">{</span>
+        ssh.AddAuthorizedKey: <span class="o">{</span>
+            publicKeyPath: ~/.ssh/id_rsa.pub
+            deploymentNodes: <span class="o">[</span>
+                node1
+            <span class="o">]</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="o">{</span>
+        software.UpdateKernel: <span class="o">{}</span>
+    <span class="o">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In case of deployments without parameters(<code class="docutils literal"><span class="pre">software.UpdateKernel</span></code>) we still need to specify the
+emtpy parameter dictionary <code class="docutils literal"><span class="pre">{}</span></code></p>
+</div>
+<p>2. A simplified and more readable syntax without <code class="docutils literal"><span class="pre">{}</span></code> that also allows for deployments
+without parameters</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>deployments: <span class="o">[</span>
+    ssh.AddAuthorizedKey: <span class="o">{</span>
+        publicKeyPath: ~/.ssh/id_rsa.pub
+        deploymentNodes: <span class="o">[</span>
+            node1
+        <span class="o">]</span>
+    <span class="o">}</span>
+    software.UpdateKernel
+<span class="o">]</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="storm.thunder.configuration.DeploymentInfo">
+<em class="property">class </em><code class="descclassname">storm.thunder.configuration.</code><code class="descname">DeploymentInfo</code><span class="sig-paren">(</span><em>deployment</em>, <em>*nodes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#DeploymentInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.hjsonutil.HjsonSerializable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Deployment information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>deployment</strong> (<code class="xref py py-class docutils literal"><span class="pre">Deployment</span></code>) &#8211; deployment</li>
+<li><strong>nodes</strong> (<em>[str]</em>) &#8211; the nodes on which to run the deployment</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="storm.thunder.configuration.DeploymentInfo.fromHjsonSerializable">
+<em class="property">classmethod </em><code class="descname">fromHjsonSerializable</code><span class="sig-paren">(</span><em>hjsonDict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#DeploymentInfo.fromHjsonSerializable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfo.fromHjsonSerializable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a dictionary from Hjson into a respective Python
+objects. By default the dictionary is returned as is.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cls</strong> (<em>class</em>) &#8211; the class to deserialize into</li>
+<li><strong>hjsonDict</strong> (<em>dict</em>) &#8211; the Hjson dictionary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">modified dictionary or Python objects</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="storm.thunder.configuration.DeploymentInfos">
+<em class="property">class </em><code class="descclassname">storm.thunder.configuration.</code><code class="descname">DeploymentInfos</code><span class="sig-paren">(</span><em>deployments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#DeploymentInfos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">c4.utils.hjsonutil.HjsonSerializable</span></code>, <code class="xref py py-class docutils literal"><span class="pre">c4.utils.jsonutil.JSONSerializable</span></code></p>
+<p>Container for all the deployment information items</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deployments</strong> ([<a class="reference internal" href="#storm.thunder.configuration.DeploymentInfo" title="storm.thunder.configuration.DeploymentInfo"><code class="xref py py-class docutils literal"><span class="pre">DeploymentInfo</span></code></a>]) &#8211; list of deployments</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="storm.thunder.configuration.DeploymentInfos.fromHjson">
+<em class="property">classmethod </em><code class="descname">fromHjson</code><span class="sig-paren">(</span><em>hjsonString</em>, <em>objectHook=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#DeploymentInfos.fromHjson"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfos.fromHjson" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load object from the specified Hjson string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cls</strong> (<em>class</em>) &#8211; the class to deserialize into</li>
+<li><strong>hjsonString</strong> (<em>str</em>) &#8211; a Hjson string</li>
+<li><strong>objectHook</strong> (<em>func</em>) &#8211; a function converting a Hjson dictionary
+into a dictionary containing Python objects. If <code class="docutils literal"><span class="pre">None</span></code>
+then the default <a class="reference internal" href="#storm.thunder.configuration.DeploymentInfos.fromHjsonSerializable" title="storm.thunder.configuration.DeploymentInfos.fromHjsonSerializable"><code class="xref py py-meth docutils literal"><span class="pre">fromHjsonSerializable()</span></code></a> is used</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">object instance of the respective class</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="storm.thunder.configuration.DeploymentInfos.fromHjsonSerializable">
+<em class="property">classmethod </em><code class="descname">fromHjsonSerializable</code><span class="sig-paren">(</span><em>hjsonDict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#DeploymentInfos.fromHjsonSerializable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfos.fromHjsonSerializable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a dictionary from Hjson into a respective Python
+objects. By default the dictionary is returned as is.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cls</strong> (<em>class</em>) &#8211; the class to deserialize into</li>
+<li><strong>hjsonDict</strong> (<em>dict</em>) &#8211; the Hjson dictionary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">modified dictionary or Python objects</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="storm.thunder.configuration.DeploymentInfos.log">
+<code class="descname">log</code><em class="property"> = &lt;logging.Logger object&gt;</em><a class="headerlink" href="#storm.thunder.configuration.DeploymentInfos.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="storm.thunder.configuration.getTypedParameter">
+<code class="descclassname">storm.thunder.configuration.</code><code class="descname">getTypedParameter</code><span class="sig-paren">(</span><em>dictionary</em>, <em>name</em>, <em>expectedType</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/storm/thunder/configuration.html#getTypedParameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storm.thunder.configuration.getTypedParameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter from the specified dictionary while making sure it matches
+the expected type</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dictionary</strong> (<em>dict</em>) &#8211; dictionary</li>
+<li><strong>name</strong> (<em>str</em>) &#8211; parameter name</li>
+<li><strong>expectedType</strong> (<em>type</em>) &#8211; expected type</li>
+<li><strong>default</strong> &#8211; default parameter value</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="manager.html" class="btn btn-neutral float-right" title="Manager" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="client.html" class="btn btn-neutral" title="SSH Client" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014-2016, Martin Kuehnhausen, Nick Leytem.
+      Last updated on Mar 10, 2017.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.12.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
