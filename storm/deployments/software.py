@@ -55,9 +55,6 @@ class ClusterDeployToDirectory(ClusterDeployment):
         :returns: nodes
         :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         """
-        # TODO: check if we need natural sort
-        nodes = sorted(nodes, key=lambda node: node.name)
-
         # client for the first node
         node = nodes[0]
         client = clients[node.name]

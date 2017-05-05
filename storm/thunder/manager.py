@@ -10,11 +10,12 @@ import re
 import sys
 
 from c4.utils.util import (getVariableArguments,
-                           initWithVariableArguments)
-from storm.thunder.base import (NodesInfoMap,
+                           initWithVariableArguments, naturalSortKey)
+
+from storm.thunder.base import (DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS,
+                                NodesInfoMap,
                                 deploy,
-                                getDeployments,
-                                getDocumentation)
+                                getDeployments, getDocumentation)
 from storm.thunder.configuration import DeploymentInfos
 
 
@@ -122,6 +123,10 @@ def getConfigArgumentParser():
                         metavar="nodes.json",
                         type=argparse.FileType("r"),
                         help="nodes information")
+    parser.add_argument("--parallel",
+                        default=DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS,
+                        type=int,
+                        help="number of deployments to run in parallel (default: {})".format(DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS))
     parser.add_argument("--usePrivateIps",
                         action="store_true",
                         default=False,
@@ -242,7 +247,7 @@ def main():
         nodes = nodesInformation.getNodesByNames(args.nodes)
     else:
         nodes = nodesInformation.nodes.values()
-    nodes = sorted(nodes, key=lambda node: node.name)
+    nodes = sorted(nodes, key=lambda node: naturalSortKey(node.name))
 
     if args.usePrivateIps:
         for node in nodes:
@@ -263,7 +268,7 @@ def main():
 
         for deploymentSection in getDeploymentSections(deploymentInfos, nodesInformation):
             deployments, nodes = deploymentSection
-            results = deploy(deployments, nodes, usePrivateIps=args.usePrivateIps)
+            results = deploy(deployments, nodes, usePrivateIps=args.usePrivateIps, numberOfParallelDeployments=args.parallel)
             if results.numberOfErrors:
                 return results.numberOfErrors
 

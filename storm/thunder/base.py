@@ -13,11 +13,12 @@ import libcloud.compute.deployment
 import libcloud.compute.types
 
 from c4.utils.jsonutil import JSONSerializable
-from c4.utils.util import (getFullModuleName, getModuleClasses)
+from c4.utils.util import (getFullModuleName, getModuleClasses,
+                           naturalSortKey)
 
 from .client import AdvancedSSHClient
 
-
+DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS = 20
 PARAMETER_DOC_REGEX = re.compile(r"\s*:(?P<docType>\w+)\s+(?P<name>\w+):\s+(?P<description>.+)", re.MULTILINE)
 
 
@@ -373,7 +374,7 @@ class NodesInfoMap(JSONSerializable):
 
         return nodes
 
-def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=False):
+def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=False, numberOfParallelDeployments=DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS):
     """
     Run specified deployment on the nodes
 
@@ -385,6 +386,8 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
     :type timeout: int
     :param usePrivateIps: use private ip to connect to nodes instead of the public one
     :type usePrivateIps: bool
+    :param numberOfParallelDeployments: number of deployments to run in parallel
+    :type numberOfParallelDeployments: int
     :returns: deployment results
     :rtype: :class:`~DeploymentResults`
     """
@@ -403,6 +406,9 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
     else:
         nodes = [nodeOrNodes]
 
+    # sort nodes by domain name
+    nodes = sorted(nodes, key=lambda node: naturalSortKey(node.name))
+
     if not deployments:
         log.error("Nothing to deploy")
         totalEnd = datetime.datetime.utcnow()
@@ -410,9 +416,8 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
 
     deploymentNames = [deployment.typeAsString for deployment in deployments]
 
-    # TODO: determine parallism or make configurable through option
     # TODO: determine if we want to switch to regular process pool or keep using threads while assuming most of the processing is done on the nodes
-    pool = ThreadPool(processes=20)
+    pool = ThreadPool(processes=max([numberOfParallelDeployments, len(nodes)]))
 
     def connectClient(node):
         """
