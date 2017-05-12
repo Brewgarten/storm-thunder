@@ -30,6 +30,8 @@ class Deploy(Deployment):
     :type directory: str
     :param force: remove old directory before deploying
     :type force: bool
+    :param tag: tag name
+    :type tag: str
     """
     def __init__(self, url, branch="master", credentialsFile=None, directory="~", force=False, tag=None):
         super(Deploy, self).__init__()

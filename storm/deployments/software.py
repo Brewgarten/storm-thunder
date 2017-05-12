@@ -67,7 +67,9 @@ class ClusterDeployToDirectory(ClusterDeployment):
             remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
             deployments.append(RemoteCopy(node.name, self.directory, remoteFileName))
 
-        deploy(deployments, nodes[1:])
+        results = deploy(deployments, nodes[1:])
+        if results.numberOfErrors > 0:
+            raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 
         return nodes
 

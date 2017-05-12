@@ -47,7 +47,9 @@ class AddNodesToEtcHosts(ClusterDeployment):
                 deployments.append(AddToEtcHosts(node.public_ips[0], hostnames))
 
         # go through all nodes and add node information of all other nodes to /etc/hosts
-        deploy(deployments, nodes)
+        results = deploy(deployments, nodes)
+        if results.numberOfErrors > 0:
+            raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 
         return nodes
 
@@ -69,7 +71,9 @@ class SetupPasswordlessSSH(ClusterDeployment):
         sshKeys = []
 
         self.log.info("Getting ssh keys from hosts in the cluster")
-        deploy([GenerateHostSSHKeys(), GenerateSSHKeys(user=self.user)], nodes)
+        results = deploy([GenerateHostSSHKeys(), GenerateSSHKeys(user=self.user)], nodes)
+        if results.numberOfErrors > 0:
+            raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
         publicKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa.pub")
         for node in nodes:
             try:
@@ -84,6 +88,8 @@ class SetupPasswordlessSSH(ClusterDeployment):
             deployments.append(AddKnownHost(host, key, user=self.user))
         for sshKey in sshKeys:
             deployments.append(AddAuthorizedKey(publicKey=sshKey, user=self.user))
-        deploy(deployments, nodes)
+        results = deploy(deployments, nodes)
+        if results.numberOfErrors > 0:
+            raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 
         return nodes
