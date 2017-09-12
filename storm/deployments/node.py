@@ -30,8 +30,19 @@ class AddPathsToBashProfile(Deployment):
         self.profilePath = profilePath
         self.paths = paths
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
 
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         # make sure the paths are valid
         for path in self.paths:
             stdout, stderr, status = client.run("ls {0}".format(path))
@@ -73,7 +84,7 @@ class SetKernelParameters(Deployment):
         super(SetKernelParameters, self).__init__()
         self.parameters = parameters
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -81,6 +92,8 @@ class SetKernelParameters(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """

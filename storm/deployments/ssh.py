@@ -36,7 +36,7 @@ class AddAuthorizedKey(Deployment):
         self.user = user
         self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -44,6 +44,8 @@ class AddAuthorizedKey(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -93,7 +95,7 @@ class AddKnownHost(Deployment):
         self.user = user
         self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -101,6 +103,8 @@ class AddKnownHost(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -151,7 +155,7 @@ class AddToEtcHosts(Deployment):
         self.hostnames = hostnames
         self.ip = ip
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -159,6 +163,8 @@ class AddToEtcHosts(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -180,7 +186,7 @@ class GenerateHostSSHKeys(Deployment):
     def __init__(self):
         super(GenerateHostSSHKeys, self).__init__()
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -188,6 +194,8 @@ class GenerateHostSSHKeys(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -231,7 +239,7 @@ class GenerateSSHKeys(Deployment):
         self.user = user
         self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -239,6 +247,8 @@ class GenerateSSHKeys(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """

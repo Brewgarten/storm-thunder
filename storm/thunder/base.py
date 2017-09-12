@@ -65,7 +65,7 @@ class ClusterDeployment(BaseDeployment):
         super(ClusterDeployment, self).__init__()
 
     @abstractmethod
-    def run(self, nodes, clients):
+    def run(self, nodes, clients, usePrivateIps=False):
         """
         Run cluster-wide deployment on speficied nodes
 
@@ -73,6 +73,8 @@ class ClusterDeployment(BaseDeployment):
         :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         :param clients: node name to connected SSH client mapping
         :type clients: dict
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: nodes
         :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         """
@@ -121,7 +123,7 @@ class Deployment(BaseDeployment, libcloud.compute.deployment.Deployment):
         super(Deployment, self).__init__()
 
     @abstractmethod
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps=False):
         """
         Runs this deployment task on node using the client provided.
 
@@ -129,6 +131,8 @@ class Deployment(BaseDeployment, libcloud.compute.deployment.Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -460,7 +464,7 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
         if isinstance(deployment, ClusterDeployment):
 
             try:
-                deployment.run(nodes, clients)
+                deployment.run(nodes, clients, usePrivateIps)
                 deploymentEnd = datetime.datetime.utcnow()
                 deploymentResults.addResult(DeploymentResult(deployment, nodes[0], deploymentStart, deploymentEnd))
             except DeploymentRunError as deploymentRunError:
@@ -483,7 +487,7 @@ def deploy(deploymentOrDeploymentList, nodeOrNodes, timeout=60, usePrivateIps=Fa
                 node, client = nodeClientTuple
                 nodeStart = datetime.datetime.utcnow()
                 try:
-                    deployment.run(node, client)
+                    deployment.run(node, client, usePrivateIps)
                     nodeEnd = datetime.datetime.utcnow()
                     result = DeploymentResult(deployment, node, nodeStart, nodeEnd)
                     log.info("Running '%s' on '%s' took %s",

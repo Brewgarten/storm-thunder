@@ -49,7 +49,7 @@ class Deploy(Deployment):
                 if match:
                     self.urlWithCredentials = match.group("url")
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -57,6 +57,8 @@ class Deploy(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -122,7 +124,7 @@ class Install(Deployment):
         self.includeManPages = includeManPages
         self.version = version
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -130,6 +132,8 @@ class Install(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -160,7 +164,7 @@ class Install(Deployment):
             "zlib-devel",
             "openssl-devel"
         ]
-        InstallRPMPackages(*prerequisites).run(node, client)
+        InstallRPMPackages(*prerequisites).run(node, client, usePrivateIps)
 
         if self.includeDocumentation:
             self.log.debug("Installing documentation prerequisite packages")
@@ -169,7 +173,7 @@ class Install(Deployment):
                 "docbook2X",
                 "xmlto"
             ]
-            InstallRPMPackages(*documenationPrerequisites).run(node, client)
+            InstallRPMPackages(*documenationPrerequisites).run(node, client, usePrivateIps)
 
             stdout, stderr, status = client.run("ln -sf /usr/bin/db2x_docbook2texi /usr/bin/docbook2x-texi")
             if status != 0:

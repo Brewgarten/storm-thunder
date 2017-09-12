@@ -27,7 +27,19 @@ class AddNodesToEtcHosts(ClusterDeployment):
         super(AddNodesToEtcHosts, self).__init__()
         self.privateIp = privateIp
 
-    def run(self, nodes, clients):
+    def run(self, nodes, clients, usePrivateIps):
+        """
+        Run cluster-wide deployment on speficied nodes
+
+        :param nodes: the nodes
+        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        :param clients: node name to connected SSH client mapping
+        :type clients: dict
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: nodes
+        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        """
         # gather node information from all nodes
         deployments = []
         for node in nodes:
@@ -47,7 +59,7 @@ class AddNodesToEtcHosts(ClusterDeployment):
                 deployments.append(AddToEtcHosts(node.public_ips[0], hostnames))
 
         # go through all nodes and add node information of all other nodes to /etc/hosts
-        results = deploy(deployments, nodes)
+        results = deploy(deployments, nodes, usePrivateIps=usePrivateIps)
         if results.numberOfErrors > 0:
             raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 
@@ -66,12 +78,24 @@ class SetupPasswordlessSSH(ClusterDeployment):
         self.user = user
         self.userHome = os.path.join("/home", user) if user != "root" else "/root"
 
-    def run(self, nodes, clients):
+    def run(self, nodes, clients, usePrivateIps):
+        """
+        Run cluster-wide deployment on speficied nodes
+
+        :param nodes: the nodes
+        :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        :param clients: node name to connected SSH client mapping
+        :type clients: dict
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: nodes
+        :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
+        """
         hostKeys = {}
         sshKeys = []
 
         self.log.info("Getting ssh keys from hosts in the cluster")
-        results = deploy([GenerateHostSSHKeys(), GenerateSSHKeys(user=self.user)], nodes)
+        results = deploy([GenerateHostSSHKeys(), GenerateSSHKeys(user=self.user)], nodes, usePrivateIps=usePrivateIps)
         if results.numberOfErrors > 0:
             raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
         publicKeyPath = os.path.join(self.userHome, ".ssh", "id_rsa.pub")
@@ -88,7 +112,7 @@ class SetupPasswordlessSSH(ClusterDeployment):
             deployments.append(AddKnownHost(host, key, user=self.user))
         for sshKey in sshKeys:
             deployments.append(AddAuthorizedKey(publicKey=sshKey, user=self.user))
-        results = deploy(deployments, nodes)
+        results = deploy(deployments, nodes, usePrivateIps=usePrivateIps)
         if results.numberOfErrors > 0:
             raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 

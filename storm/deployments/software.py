@@ -44,7 +44,7 @@ class ClusterDeployToDirectory(ClusterDeployment):
                 self.fileNames.append(potentialFileName)
         self.remoteFileNames = []
 
-    def run(self, nodes, clients):
+    def run(self, nodes, clients, usePrivateIps):
         """
         Run cluster-wide deployment on speficied nodes
 
@@ -52,6 +52,8 @@ class ClusterDeployToDirectory(ClusterDeployment):
         :type nodes: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         :param clients: node name to connected SSH client mapping
         :type clients: dict
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: nodes
         :rtype: [:class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`]
         """
@@ -59,7 +61,7 @@ class ClusterDeployToDirectory(ClusterDeployment):
         node = nodes[0]
         client = clients[node.name]
 
-        UploadToDirectory(self.directory, *self.fileNames).run(node, client)
+        UploadToDirectory(self.directory, *self.fileNames).run(node, client, usePrivateIps)
 
         deployments = []
         for fileName in self.fileNames:
@@ -67,7 +69,7 @@ class ClusterDeployToDirectory(ClusterDeployment):
             remoteFileName = os.path.join(self.directory, os.path.basename(fileName))
             deployments.append(RemoteCopy(node.name, self.directory, remoteFileName))
 
-        results = deploy(deployments, nodes[1:])
+        results = deploy(deployments, nodes[1:], usePrivateIps=usePrivateIps)
         if results.numberOfErrors > 0:
             raise DeploymentRunError(nodes[0], results.toJSON(includeClassInfo=True, pretty=True))
 
@@ -91,7 +93,19 @@ class DeployPythonPackages(Deployment):
         ]
         self.pip = pip
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
 
         with RemoteTemporaryDirectory(client) as tmpDirectory:
 
@@ -125,7 +139,19 @@ class InstallLocalRPMPackages(Deployment):
         super(InstallLocalRPMPackages, self).__init__()
         self.rpms = rpms
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         # generate package to file mapping
         packages = {
             # remove rpm extension
@@ -146,7 +172,7 @@ class InstallLocalRPMPackages(Deployment):
         with RemoteTemporaryDirectory(client) as tmpDirectory:
             uploadToDirectory = UploadToDirectory(tmpDirectory, *missingRPMs)
             uploadToDirectory.run(node, client)
-            InstallRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client)
+            InstallRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client, usePrivateIps=usePrivateIps)
 
         return node
 
@@ -162,7 +188,19 @@ class InstallRPMPackages(Deployment):
         super(InstallRPMPackages, self).__init__()
         self.rpms = rpms
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         if not self.rpms:
             return node
         for attempt in range(3):
@@ -203,7 +241,7 @@ class RemoteCopy(Deployment):
         self.directory = directory
         self.fileNames = fileNames
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -211,6 +249,8 @@ class RemoteCopy(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -242,7 +282,7 @@ class RemoveRPMPackages(Deployment):
         super(RemoveRPMPackages, self).__init__()
         self.rpms = rpms
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
         """
         Runs this deployment task on node using the client provided.
 
@@ -250,6 +290,8 @@ class RemoveRPMPackages(Deployment):
         :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         :param client: connected SSH client
         :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
         :returns: node
         :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
         """
@@ -281,11 +323,23 @@ class UpdateLocalRPMPackages(Deployment):
         super(UpdateLocalRPMPackages, self).__init__()
         self.rpms = rpms
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         with RemoteTemporaryDirectory(client) as tmpDirectory:
             uploadToDirectory = UploadToDirectory(tmpDirectory, *self.rpms)
-            uploadToDirectory.run(node, client)
-            UpdateRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client)
+            uploadToDirectory.run(node, client, usePrivateIps=usePrivateIps)
+            UpdateRPMPackages(*uploadToDirectory.remoteFileNames).run(node, client, usePrivateIps=usePrivateIps)
 
         return node
 
@@ -301,7 +355,19 @@ class UpdateRPMPackages(Deployment):
         super(UpdateRPMPackages, self).__init__()
         self.rpms = rpms
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         if not self.rpms:
             return node
         for attempt in range(3):
@@ -329,7 +395,19 @@ class UpdateKernel(Deployment):
     def __init__(self):
         super(UpdateKernel, self).__init__()
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
 
         ## update kernel
         stdout, stderr, status = client.run("/usr/bin/yum update kernel --assumeyes")
@@ -377,7 +455,19 @@ class UploadToDirectory(Deployment):
                 self.fileNames.append(potentialFileName)
         self.remoteFileNames = []
 
-    def run(self, node, client):
+    def run(self, node, client, usePrivateIps):
+        """
+        Runs this deployment task on node using the client provided.
+
+        :param node: node
+        :type node: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        :param client: connected SSH client
+        :type client: :class:`~libcloud.compute.ssh.BaseSSHClient`
+        :param usePrivateIps: use private ip to connect to nodes instead of the public one
+        :type usePrivateIps: bool
+        :returns: node
+        :rtype: :class:`~libcloud.compute.base.Node` or :class:`~BaseNodeInfo`
+        """
         if not self.fileNames:
             return node
         client.mkdir(self.directory)
