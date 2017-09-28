@@ -8,7 +8,7 @@ Cluster deployments
 import logging
 import os
 
-from storm.utils.logutil import ClassLogger
+from c4.utils.logutil import ClassLogger
 
 from ..thunder import (ClusterDeployment,
                        DeploymentRunError,

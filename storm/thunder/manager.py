@@ -13,7 +13,7 @@ import os
 import re
 import sys
 
-from storm.utils.util import (getVariableArguments,
+from c4.utils.util import (getVariableArguments,
                            initWithVariableArguments, naturalSortKey)
 
 from storm.thunder.base import (DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS,

@@ -16,8 +16,8 @@ import libcloud.compute.base
 import libcloud.compute.deployment
 import libcloud.compute.types
 
-from storm.utils.jsonutil import JSONSerializable
-from storm.utils.util import (getFullModuleName, getModuleClasses,
+from c4.utils.jsonutil import JSONSerializable
+from c4.utils.util import (getFullModuleName, getModuleClasses,
                            naturalSortKey)
 
 from .client import AdvancedSSHClient

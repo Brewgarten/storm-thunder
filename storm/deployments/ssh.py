@@ -10,8 +10,8 @@ import os
 import re
 import subprocess
 
-from storm.utils.logutil import ClassLogger
-from storm.utils.util import EtcHosts
+from c4.utils.logutil import ClassLogger
+from c4.utils.util import EtcHosts
 
 from ..thunder import Deployment
 

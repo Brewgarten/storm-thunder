@@ -9,7 +9,7 @@ import logging
 import os
 import re
 
-from storm.utils.logutil import ClassLogger
+from c4.utils.logutil import ClassLogger
 
 from ..thunder import (Deployment,
                        DeploymentRunError,

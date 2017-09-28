@@ -52,10 +52,10 @@ without parameters
 import logging
 import re
 
-from storm.utils.hjsonutil import HjsonSerializable
-from storm.utils.jsonutil import JSONSerializable
-from storm.utils.logutil import ClassLogger
-from storm.utils.util import initWithVariableArguments
+from c4.utils.hjsonutil import HjsonSerializable
+from c4.utils.jsonutil import JSONSerializable
+from c4.utils.logutil import ClassLogger
+from c4.utils.util import initWithVariableArguments
 
 
 log = logging.getLogger(__name__)
