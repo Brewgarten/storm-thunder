@@ -1,4 +1,8 @@
 """
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+
 Base components of deployments and deployment functionality
 """
 from abc import ABCMeta, abstractmethod
@@ -12,8 +16,8 @@ import libcloud.compute.base
 import libcloud.compute.deployment
 import libcloud.compute.types
 
-from c4.utils.jsonutil import JSONSerializable
-from c4.utils.util import (getFullModuleName, getModuleClasses,
+from storm.utils.jsonutil import JSONSerializable
+from storm.utils.util import (getFullModuleName, getModuleClasses,
                            naturalSortKey)
 
 from .client import AdvancedSSHClient

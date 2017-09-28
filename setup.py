@@ -1,3 +1,8 @@
+"""
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+"""
 import sys
 
 from setuptools import setup, find_packages
@@ -20,12 +25,11 @@ setup(
     },
     install_requires = [
         "apache-libcloud==1.1",
-        "c4-utils>=0.2",
         "hjson",
         "paramiko==2.0"
     ],
     keywords = "python storm cloud deployment",
-    license = "IBM",
+    license = "MIT",
     name = "storm-thunder",
     packages = find_packages(),
     setup_requires=[] + pytest_runner,

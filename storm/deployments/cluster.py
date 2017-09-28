@@ -1,10 +1,14 @@
 """
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+
 Cluster deployments
 """
 import logging
 import os
 
-from c4.utils.logutil import ClassLogger
+from storm.utils.logutil import ClassLogger
 
 from ..thunder import (ClusterDeployment,
                        DeploymentRunError,

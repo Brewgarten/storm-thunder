@@ -1,3 +1,8 @@
+"""
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+"""
 import logging
 
 from storm.thunder import BaseNodeInfo, NodesInfoMap

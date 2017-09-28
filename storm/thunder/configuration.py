@@ -1,4 +1,8 @@
 """
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+
 Serializable configuration functionality
 
 Deployment DSL
@@ -48,10 +52,10 @@ without parameters
 import logging
 import re
 
-from c4.utils.hjsonutil import HjsonSerializable
-from c4.utils.jsonutil import JSONSerializable
-from c4.utils.logutil import ClassLogger
-from c4.utils.util import initWithVariableArguments
+from storm.utils.hjsonutil import HjsonSerializable
+from storm.utils.jsonutil import JSONSerializable
+from storm.utils.logutil import ClassLogger
+from storm.utils.util import initWithVariableArguments
 
 
 log = logging.getLogger(__name__)

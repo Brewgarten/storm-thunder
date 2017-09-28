@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 """
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+
 Deployment management functionality
 """
 import argparse
@@ -9,7 +13,7 @@ import os
 import re
 import sys
 
-from c4.utils.util import (getVariableArguments,
+from storm.utils.util import (getVariableArguments,
                            initWithVariableArguments, naturalSortKey)
 
 from storm.thunder.base import (DEFAULT_NUMBER_OF_PARALLEL_DEPLOYMENTS,

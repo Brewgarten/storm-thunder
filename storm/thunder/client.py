@@ -1,4 +1,8 @@
 """
+Copyright (c) IBM 2015-2017. All Rights Reserved.
+Project name: storm-thunder
+This project is licensed under the MIT License, see LICENSE
+
 Functionality to connect to and manage remote nodes
 """
 import inspect
@@ -18,7 +22,7 @@ from libcloud.compute.ssh import ParamikoSSHClient, SSHCommandTimeoutError
 
 log = logging.getLogger(__name__)
 
-# TODO: this is a duplicate since we don't want a dependency here, the whole function should probably be moved into c4.utils
+# TODO: this is a duplicate since we don't want a dependency here, the whole function should probably be moved into storm.utils
 def getFormattedArgumentString(arguments, keyValueArguments):
     """
     Get a formatted version of the argument string such that it can be used
