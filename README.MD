@@ -18,4 +18,4 @@ The Storm Project uses the [MIT](LICENSE) software license.
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.ibm.com/c4/rest-server/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository].
